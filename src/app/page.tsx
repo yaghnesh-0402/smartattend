@@ -36,7 +36,7 @@ export default function SmartAttend() {
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
 
   const stopScanner = React.useCallback(() => {
-    if (isScanning) {
+    if (Quagga.initialized) {
         try {
             Quagga.stop();
         } catch (e) {
@@ -49,8 +49,7 @@ export default function SmartAttend() {
       videoRef.current.srcObject = null;
     }
     setIsScanning(false);
-  }, [isScanning]);
-
+  }, []);
 
   const fetchStudent = async (barcode: string) => {
     setIsLoading(true);
@@ -125,7 +124,6 @@ export default function SmartAttend() {
               decoder: {
                 readers: ["code_128_reader", "ean_reader", "code_39_reader"]
               },
-              locate: true,
             }, (err) => {
               if (err) {
                 console.error("Quagga initialization failed:", err);
@@ -133,6 +131,7 @@ export default function SmartAttend() {
                 setHasCameraPermission(false);
                 return;
               }
+              Quagga.initialized = true;
               setIsScanning(true);
               Quagga.start();
             });
@@ -164,9 +163,9 @@ export default function SmartAttend() {
 
         Quagga.decodeSingle({
           src: dataUri,
-          numOfWorkers: 0,
+          numOfWorkers: 0, 
           decoder: {
-            readers: ["code_128_reader", "code_39_reader", "ean_reader"]
+              readers: ["code_128_reader", "code_39_reader", "ean_reader"],
           },
         }, (result) => {
           setIsLoading(false);
@@ -187,6 +186,7 @@ export default function SmartAttend() {
   };
 
   React.useEffect(() => {
+    Quagga.initialized = false;
     return () => {
       stopScanner();
     };
