@@ -79,81 +79,83 @@ export default function SmartAttend() {
   const handleDetected = (result: any) => {
     const code = result.codeResult.code;
     if (code && code !== scannedData) {
+      Quagga.offDetected(handleDetected);
       fetchStudent(code);
     }
   };
 
-  const startScanner = async () => {
+  const startScanner = () => {
     setStudent(null);
     setError(null);
     setScannedData(null);
-    
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+      .then(stream => {
         setHasCameraPermission(true);
         setIsScanning(true);
-
         if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.play();
+          videoRef.current.srcObject = stream;
+          videoRef.current.play();
 
-            Quagga.init({
-                inputStream: {
-                    name: "Live",
-                    type: "LiveStream",
-                    target: videoRef.current!,
-                    constraints: {
-                        width: 640,
-                        height: 480,
-                        facingMode: "environment"
-                    },
-                },
-                decoder: {
-                    readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader", "i2of5_reader"]
-                },
-                locate: true
-            }, (err) => {
-                if (err) {
-                    console.error('Quagga initialization failed:', err);
-                    setError("Failed to initialize barcode scanner.");
-                    setIsScanning(false);
-                    return;
-                }
-                Quagga.start();
-                Quagga.onDetected(handleDetected);
-            });
+          Quagga.init({
+            inputStream: {
+              name: "Live",
+              type: "LiveStream",
+              target: videoRef.current,
+              constraints: {
+                width: 640,
+                height: 480,
+                facingMode: 'environment',
+              },
+            },
+            decoder: {
+              readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader", "i2of5_reader"]
+            },
+            locate: true,
+          }, (err) => {
+            if (err) {
+              console.error("Quagga initialization failed:", err);
+              setError("Failed to initialize barcode scanner.");
+              setIsScanning(false);
+              return;
+            }
+            Quagga.start();
+            Quagga.onDetected(handleDetected);
+          });
         }
-
-    } catch (err) {
+      })
+      .catch(err => {
         console.error("Camera access denied:", err);
         setHasCameraPermission(false);
         setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
         toast({
-            variant: "destructive",
-            title: "Camera Access Denied",
-            description: "Please enable camera permissions to use the scanner.",
+          variant: "destructive",
+          title: "Camera Access Denied",
+          description: "Please enable camera permissions to use the scanner.",
         });
-    }
+      });
   };
 
   const stopScanner = () => {
     if (isScanning) {
-        Quagga.offDetected(handleDetected);
-        Quagga.stop();
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-            videoRef.current.srcObject = null;
-        }
-        setIsScanning(false);
+      Quagga.offDetected(handleDetected);
+      Quagga.stop();
+      if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+      }
+      setIsScanning(false);
     }
   };
 
   React.useEffect(() => {
     return () => {
-        stopScanner();
+      // Ensure scanner is stopped on component unmount
+      if (Quagga.initialized) {
+        Quagga.stop();
+      }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
 
@@ -176,19 +178,18 @@ export default function SmartAttend() {
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
               <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                {isScanning ? (
-                  <div className="w-full h-full">
-                     <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                     <div className="absolute inset-0 z-10 flex items-center justify-center">
-                      <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
+                <video ref={videoRef} className={`w-full h-full object-cover ${!isScanning ? 'hidden' : ''}`} autoPlay muted playsInline />
+                {!isScanning && (
+                    <div className="text-center text-muted-foreground">
+                        <Camera className="size-16 mx-auto" />
+                        <p>Camera is off</p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="text-center text-muted-foreground">
-                    <Camera className="size-16 mx-auto" />
-                    <p>Camera is off</p>
-                  </div>
                 )}
+                 {isScanning && (
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                        <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
+                    </div>
+                 )}
               </div>
                 
               {hasCameraPermission === false && (
