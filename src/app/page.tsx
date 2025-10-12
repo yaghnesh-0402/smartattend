@@ -220,6 +220,17 @@ export default function SmartAttend() {
             </div>
         )}
 
+        {scannedData && !isLoading && (
+          <Card className="mt-4 w-full">
+            <CardHeader>
+              <CardTitle className="font-headline text-center">Detected Barcode</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-center font-mono text-lg bg-muted p-2 rounded-md">{scannedData}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {error && !isLoading && (
             <Alert variant="destructive" className="mt-4">
                 <XCircle className="h-4 w-4" />
