@@ -1,17 +1,15 @@
 'use client';
 
 import * as React from 'react';
-import dynamic from 'next/dynamic';
+import Quagga from '@ericblade/quagga2';
 import { Barcode, Camera, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs, DocumentData } from 'firebase/firestore';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-const BarcodeScanner = dynamic(() => import('react-barcode-scanner').then(mod => mod.BarcodeScanner), { ssr: false });
 
 type Student = {
   id: string;
@@ -26,52 +24,25 @@ type Student = {
 export default function SmartAttend() {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [hasCameraPermission, setHasCameraPermission] = React.useState(true);
   const [isScanning, setIsScanning] = React.useState(false);
   const [scannedData, setScannedData] = React.useState<string | null>(null);
   const [student, setStudent] = React.useState<Student | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const scannerRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (isScanning) {
-      const getCameraPermission = async () => {
-        try {
-          // Just request permission, don't try to manage the stream here
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-          // Stop the tracks immediately, react-barcode-scanner will handle it
-          stream.getTracks().forEach(track => track.stop());
-          setHasCameraPermission(true);
-        } catch (error) {
-          console.error('Error accessing camera:', error);
-          setHasCameraPermission(false);
-          setIsScanning(false);
-          toast({
-            variant: 'destructive',
-            title: 'Camera Access Denied',
-            description: 'Please enable camera permissions in your browser settings.',
-          });
-        }
-      };
-      getCameraPermission();
-    }
-  }, [isScanning, toast]);
-
-  const handleScan = async (result: any) => {
-    if (result && result.text && result.text !== scannedData) {
-      const scannedBarcode = result.text;
-      setScannedData(scannedBarcode);
-      setIsScanning(false);
+  const fetchStudent = async (barcode: string) => {
       setIsLoading(true);
       setError(null);
       setStudent(null);
+      setScannedData(barcode);
 
       try {
         if (!firestore) {
             throw new Error("Firestore is not initialized");
         }
         const studentsRef = collection(firestore, 'students');
-        const q = query(studentsRef, where('barcode', '==', scannedBarcode));
+        const q = query(studentsRef, where('barcode', '==', barcode));
         const querySnapshot = await getDocs(q);
 
         if (querySnapshot.empty) {
@@ -79,7 +50,7 @@ export default function SmartAttend() {
           toast({
             variant: 'destructive',
             title: 'Student Not Found',
-            description: `No student record matches barcode: ${scannedBarcode}`,
+            description: `No student record matches barcode: ${barcode}`,
           });
         } else {
           const studentDoc = querySnapshot.docs[0];
@@ -100,16 +71,69 @@ export default function SmartAttend() {
         });
       } finally {
         setIsLoading(false);
+        stopScanner();
       }
+  };
+
+  const handleDetected = (result: any) => {
+    const code = result.codeResult.code;
+    if (code && code !== scannedData) {
+      fetchStudent(code);
     }
   };
-  
-  const handleStartScan = () => {
-    setScannedData(null);
-    setStudent(null);
-    setError(null);
-    setIsScanning(true);
-  }
+
+  const startScanner = () => {
+    if (scannerRef.current) {
+      setStudent(null);
+      setError(null);
+      setScannedData(null);
+      setIsScanning(true);
+      
+      Quagga.init({
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: scannerRef.current,
+          constraints: {
+            width: 640,
+            height: 480,
+            facingMode: "environment"
+          },
+        },
+        decoder: {
+          readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader", "i2of5_reader"]
+        },
+        locate: true
+      }, (err) => {
+        if (err) {
+          console.error('Quagga initialization failed:', err);
+          setError("Failed to initialize camera.");
+          setIsScanning(false);
+          return;
+        }
+        Quagga.start();
+        Quagga.onDetected(handleDetected);
+      });
+    }
+  };
+
+  const stopScanner = () => {
+    if (isScanning) {
+        Quagga.offDetected(handleDetected);
+        Quagga.stop();
+        setIsScanning(false);
+    }
+  };
+
+  React.useEffect(() => {
+    return () => {
+        if (isScanning) {
+            stopScanner();
+        }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isScanning]);
+
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center justify-center p-4">
@@ -131,16 +155,11 @@ export default function SmartAttend() {
             <CardContent className="flex flex-col items-center gap-4">
               <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {isScanning ? (
-                  <>
-                    <BarcodeScanner
-                        onScan={handleScan}
-                        videoConstraints={{ facingMode: 'environment' }}
-                        stopStream={!isScanning}
-                      />
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                  <div ref={scannerRef} className="w-full h-full">
+                     <div className="absolute inset-0 z-10 flex items-center justify-center">
                       <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
                     </div>
-                  </>
+                  </div>
                 ) : (
                   <div className="text-center text-muted-foreground">
                     <Camera className="size-16 mx-auto" />
@@ -150,11 +169,11 @@ export default function SmartAttend() {
               </div>
 
               {!isScanning ? (
-                  <Button onClick={handleStartScan} className="w-full">
+                  <Button onClick={startScanner} className="w-full">
                       <Camera className="mr-2" /> Start Scanning
                   </Button>
               ) : (
-                  <Button onClick={() => setIsScanning(false)} variant="destructive" className="w-full">
+                  <Button onClick={stopScanner} variant="destructive" className="w-full">
                       <XCircle className="mr-2" /> Stop Scanning
                   </Button>
               )}
@@ -197,16 +216,6 @@ export default function SmartAttend() {
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {!hasCameraPermission && !isScanning && (
-          <Alert variant="destructive" className="mt-4">
-            <Camera className="h-4 w-4" />
-            <AlertTitle>Camera Permission Required</AlertTitle>
-            <AlertDescription>
-              Please grant camera access in your browser settings to use the scanner.
-            </AlertDescription>
-          </Alert>
         )}
        </div>
     </div>
