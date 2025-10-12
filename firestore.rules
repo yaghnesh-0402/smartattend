@@ -1,0 +1,111 @@
+/**
+ * @fileoverview Firestore Security Rules for the SmartAttend application.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes authorization independence by denormalizing data to avoid costly `get()` calls.
+ * It enforces strict owner-only access for students and departments, and allows public read access to events and attendance records.
+ *
+ * Data Structure:
+ * - /students/{studentId}: Stores student information, accessible only by the student themselves (owner-only).
+ * - /events/{eventId}: Stores event information, publicly readable.
+ * - /attendances/{attendanceId}: Stores attendance records, publicly readable.
+ * - /departments/{departmentId}: Stores department information, accessible only by the department itself (owner-only).
+ *
+ * Key Security Decisions:
+ * - Students can only access their own data.
+ * - Events and Attendance Records are publicly readable.
+ * - Departments can only access their own data.
+ * - No user listing is allowed for students or departments.
+ * - The default security posture for ambiguous relationships is strict owner-only access.
+ *
+ * Denormalization for Authorization:
+ * - No denormalization is done here because the only "ownership" is on the user's own data.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows a student to read and write their own information.
+     * @path /students/{studentId}
+     * @allow (get, list) User with ID 'studentId' can read their own data.
+     * @allow (create, update, delete) User with ID 'studentId' can create, update, or delete their own data.
+     * @deny (get, list) User with ID 'anotherUserId' cannot read data of 'studentId'.
+     * @deny (create, update, delete) User with ID 'anotherUserId' cannot create, update, or delete data of 'studentId'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /students/{studentId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(studentId);
+      allow list: if false; // Prevent listing all students
+
+      allow create: if isOwner(studentId) && request.resource.data.id == studentId;
+      allow update: if isExistingOwner(studentId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(studentId);
+    }
+
+    /**
+     * @description Allows anyone to read event information. Only authenticated users can create events.
+     * @path /events/{eventId}
+     * @allow (get, list) Any user can read event data.
+     * @allow (create) Authenticated user can create events.
+     * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete events.
+     * @deny (update, delete) Any user can not update and delete events.
+     * @principle Allows public read access with authenticated creation.
+     */
+    match /events/{eventId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false; // No updates or deletes allowed
+    }
+
+    /**
+     * @description Allows anyone to read attendance records. Only authenticated users can create attendance records.
+     * @path /attendances/{attendanceId}
+     * @allow (get, list) Any user can read attendance data.
+     * @allow (create) Authenticated user can create attendance records.
+     * @deny (create, update, delete) Unauthenticated user cannot create, update, or delete attendance records.
+     * @deny (update, delete) Any user can not update and delete attendance records.
+     * @principle Allows public read access with authenticated creation.
+     */
+    match /attendances/{attendanceId} {
+      allow get, list: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if false; // No updates or deletes allowed
+    }
+
+    /**
+     * @description Allows a department to read and write their own information.
+     * @path /departments/{departmentId}
+     * @allow (get, list) User with ID 'departmentId' can read their own data.
+     * @allow (create, update, delete) User with ID 'departmentId' can create, update, or delete their own data.
+     * @deny (get, list) User with ID 'anotherUserId' cannot read data of 'departmentId'.
+     * @deny (create, update, delete) User with ID 'anotherUserId' cannot create, update, or delete data of 'departmentId'.
+     * @principle Enforces document ownership for all operations.
+     */
+    match /departments/{departmentId} {
+      function isOwner(userId) {
+        return request.auth.uid == userId;
+      }
+      function isExistingOwner(userId) {
+          return isOwner(userId) && resource != null;
+      }
+
+      allow get: if isOwner(departmentId);
+      allow list: if false; // Prevent listing all departments
+      allow create: if isOwner(departmentId) && request.resource.data.id == departmentId;
+      allow update: if isExistingOwner(departmentId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(departmentId);
+    }
+
+    function isSignedIn() {
+        return request.auth != null;
+    }
+  }
+}
