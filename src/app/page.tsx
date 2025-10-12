@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Barcode, Camera, CheckCircle, Loader2, UserPlus, Users, XCircle, Ungroup, Group } from 'lucide-react';
+import { Barcode, Camera, CheckCircle, Loader2, UserPlus, Users, XCircle, Ungroup, Group, Download } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import Quagga from '@ericblade/quagga2';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { generateAttendancePdf } from '@/lib/pdf-generator';
 
 type Student = {
   id: string;
@@ -36,7 +37,7 @@ export default function SmartAttend() {
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
   const [attendingStudents, setAttendingStudents] = React.useState<Student[]>([]);
-  const [groupBy, setGroupBy] = React.useState<'none' | 'branch' | 'year' | 'year-branch'>('none');
+  const [groupBy, setGroupBy] = React.useState<'none' | 'branch' | 'year-branch'>('none');
 
 
   const stopScanner = React.useCallback(() => {
@@ -111,7 +112,6 @@ export default function SmartAttend() {
         setHasCameraPermission(true);
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            // The video element must be played before Quagga can use it.
             await videoRef.current.play();
             
             Quagga.init({
@@ -127,11 +127,8 @@ export default function SmartAttend() {
                 },
               },
               decoder: {
-                // Limit the readers to only the one we need for better performance
                 readers: ["code_128_reader", "ean_reader", "code_39_reader"]
               },
-              // Tuning the locator can help performance, but can also make it fail.
-              // This needs careful testing.
               locate: true, 
               locator: {
                 patchSize: 'medium',
@@ -175,10 +172,9 @@ export default function SmartAttend() {
         stopScanner();
         setIsLoading(true);
 
-        // For single image decoding, we simplify the configuration significantly.
         Quagga.decodeSingle({
           src: dataUri,
-          numOfWorkers: 0, // 0 means it will run in the main thread.
+          numOfWorkers: 0,
           decoder: {
               readers: ["code_128_reader", "code_39_reader", "ean_reader"],
           },
@@ -216,7 +212,6 @@ export default function SmartAttend() {
         description: `${student.name} has been added to the list.`,
       });
     }
-    // Clear student details after adding to attendance
     setStudent(null);
     setScannedData(null);
     setCapturedImage(null);
@@ -262,7 +257,7 @@ export default function SmartAttend() {
 
     const simpleGroups = new Map<string, Student[]>();
     attendingStudents.forEach((student) => {
-      const key = String(student[groupBy as 'branch' | 'year']);
+      const key = String(student[groupBy as 'branch']);
       if (!simpleGroups.has(key)) {
         simpleGroups.set(key, []);
       }
@@ -444,9 +439,15 @@ export default function SmartAttend() {
                     <div className="space-y-4 pl-4">
                       {Array.from(branchMap.entries()).map(([branch, students]) => (
                         <div key={branch}>
-                           <h4 className="text-lg font-semibold mb-2 capitalize">
-                            Branch: {branch} ({students.length})
-                          </h4>
+                           <div className="flex justify-between items-center mb-2">
+                             <h4 className="text-lg font-semibold capitalize">
+                              Branch: {branch} ({students.length})
+                            </h4>
+                            <Button variant="outline" size="sm" onClick={() => generateAttendancePdf(students, branch, year)}>
+                              <Download className="mr-2 h-4 w-4" />
+                              Download PDF
+                            </Button>
+                          </div>
                           <Table>
                              <TableHeader>
                               <TableRow>
@@ -475,16 +476,21 @@ export default function SmartAttend() {
               <div className="space-y-6">
                 {(groupedStudents as [string, Student[]][])?.map(([groupKey, students]) => (
                   <div key={groupKey}>
-                    <h3 className="text-lg font-semibold mb-2 capitalize">
-                      {groupBy}: {groupKey} ({students.length})
-                    </h3>
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-lg font-semibold capitalize">
+                        {groupBy}: {groupKey} ({students.length})
+                      </h3>
+                      <Button variant="outline" size="sm" onClick={() => generateAttendancePdf(students, groupKey, undefined)}>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download PDF
+                      </Button>
+                    </div>
                     <Table>
                       <TableHeader>
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Roll No</TableHead>
-                          {groupBy !== 'branch' && <TableHead>Branch</TableHead>}
-                          {groupBy !== 'year' && <TableHead>Year</TableHead>}
+                          <TableHead>Year</TableHead>
                           <TableHead>Section</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -493,8 +499,7 @@ export default function SmartAttend() {
                           <TableRow key={s.id}>
                             <TableCell className="font-medium">{s.name}</TableCell>
                             <TableCell>{s.rollNo}</TableCell>
-                            {groupBy !== 'branch' && <TableCell>{s.branch}</TableCell>}
-                            {groupBy !== 'year' && <TableCell>{s.year}</TableCell>}
+                            <TableCell>{s.year}</TableCell>
                             <TableCell>{s.section}</TableCell>
                           </TableRow>
                         ))}
