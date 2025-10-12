@@ -6,7 +6,7 @@ import { Barcode, Camera, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, DocumentData } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -45,7 +45,6 @@ export default function SmartAttend() {
         Quagga.stop();
       }
     } catch (e) {
-      // This can sometimes throw an error if Quagga is already stopped, which is fine.
       console.warn("Quagga stop error, may be harmless:", e);
     }
     setIsScanning(false);
@@ -130,7 +129,7 @@ export default function SmartAttend() {
       });
     }
   };
-
+  
   const captureAndScan = () => {
     if (videoRef.current) {
       const canvas = document.createElement('canvas');
@@ -146,7 +145,7 @@ export default function SmartAttend() {
 
         Quagga.decodeSingle({
           src: dataUri,
-          numOfWorkers: 0,
+          numOfWorkers: 0, 
           decoder: {
             readers: ["code_128_reader", "code_39_reader", "ean_reader", "upc_reader"]
           },
@@ -168,8 +167,8 @@ export default function SmartAttend() {
     }
   };
 
+
   React.useEffect(() => {
-    // Cleanup function to ensure camera is off when the component is unmounted
     return () => {
       stopScanner();
     };
@@ -177,12 +176,12 @@ export default function SmartAttend() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background items-center justify-center p-4">
-      <div className="w-full max-w-md mx-auto">
+       <div className="w-full max-w-md mx-auto">
         <div className="flex items-center justify-center gap-2 mb-6">
-          <Barcode className="size-10 text-primary" />
-          <h1 className="text-4xl font-headline font-bold">
-            Smart Attend
-          </h1>
+            <Barcode className="size-10 text-primary" />
+            <h1 className="text-4xl font-headline font-bold">
+              Smart Attend
+            </h1>
         </div>
 
         <Card>
@@ -239,16 +238,16 @@ export default function SmartAttend() {
             <p className="mt-2 text-muted-foreground">{capturedImage ? 'Processing image...' : 'Fetching student details...'}</p>
           </div>
         )}
-
-        {scannedData && !isLoading && (
-          <Card className="mt-4 w-full">
-            <CardHeader>
-              <CardTitle className="font-headline text-center">Detected Barcode</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-center font-mono text-lg bg-muted p-2 rounded-md">{scannedData}</p>
-            </CardContent>
-          </Card>
+        
+        {scannedData && !isLoading && !student && !error && (
+            <Card className="mt-4 w-full">
+                <CardHeader>
+                <CardTitle className="font-headline text-center">Detected Barcode</CardTitle>
+                </CardHeader>
+                <CardContent>
+                <p className="text-center font-mono text-lg bg-muted p-2 rounded-md">{scannedData}</p>
+                </CardContent>
+            </Card>
         )}
 
         {error && !isLoading && (
