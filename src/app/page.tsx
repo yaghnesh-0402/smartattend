@@ -83,8 +83,6 @@ export default function SmartAttend() {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    // Quagga.stop() might not be necessary if we only initialize it for decodeSingle
-    // but we call it just in case to be safe.
     try {
       Quagga.stop();
     } catch(e) {
@@ -141,7 +139,11 @@ export default function SmartAttend() {
           decoder: {
             readers: ["code_128_reader", "code_39_reader"]
           },
-          locate: true,
+          locate: false,
+          locator: {
+            patchSize: 'medium',
+            halfSample: true,
+          }
         }, (result) => {
           if (result && result.codeResult) {
             fetchStudent(result.codeResult.code);
@@ -163,7 +165,6 @@ export default function SmartAttend() {
 
   React.useEffect(() => {
     return () => {
-      // Ensure scanner is stopped on component unmount
       stopScanner();
     };
   }, []);
