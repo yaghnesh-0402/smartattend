@@ -164,6 +164,7 @@ export default function SmartAttend() {
 
 
   React.useEffect(() => {
+    // Cleanup function to stop scanner when component unmounts
     return () => {
       stopScanner();
     };
