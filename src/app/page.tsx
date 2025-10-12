@@ -361,7 +361,7 @@ export default function SmartAttend() {
       {attendingStudents.length > 0 && (
         <Card className="mt-6 w-full max-w-4xl">
           <CardHeader>
-            <div className="flex justify-between items-center">
+            <div className="flex flex-wrap justify-between items-center gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Users />
@@ -369,7 +369,7 @@ export default function SmartAttend() {
                 </CardTitle>
                 <CardDescription>Students who have been marked as present.</CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy('branch')}>
                   <Group className="mr-2" /> Group by Branch
                 </Button>
