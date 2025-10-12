@@ -45,6 +45,7 @@ export default function SmartAttend() {
   const [hodName, setHodName] = React.useState('');
   const [eventName, setEventName] = React.useState('');
   const [clubName, setClubName] = React.useState('');
+  const [universityName, setUniversityName] = React.useState('');
 
 
   const stopScanner = React.useCallback(() => {
@@ -225,15 +226,15 @@ export default function SmartAttend() {
   };
   
   const handleDownloadPdf = (students: Student[], branch: string, year?: string) => {
-    if (!hodName || !eventName || !clubName) {
+    if (!hodName || !eventName || !clubName || !universityName) {
       toast({
         variant: 'destructive',
         title: 'Missing PDF Details',
-        description: 'Please fill in the HOD Name, Event Name, and Club Name before downloading the PDF.',
+        description: 'Please fill in all PDF customization fields before downloading.',
       });
       return;
     }
-    generateAttendancePdf(students, branch, year, { hodName, eventName, clubName });
+    generateAttendancePdf(students, branch, year, { hodName, eventName, clubName, universityName });
   };
 
   React.useEffect(() => {
@@ -404,7 +405,7 @@ export default function SmartAttend() {
                     <CardTitle>PDF Customization</CardTitle>
                     <CardDescription>Enter the details to be included in the downloaded attendance report.</CardDescription>
                 </CardHeader>
-                <CardContent className="grid sm:grid-cols-3 gap-4">
+                <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                         <Label htmlFor="hod-name">HOD Name</Label>
                         <Input id="hod-name" placeholder="e.g., Dr. Jane Smith" value={hodName} onChange={(e) => setHodName(e.target.value)} />
@@ -416,6 +417,10 @@ export default function SmartAttend() {
                     <div className="space-y-2">
                         <Label htmlFor="club-name">Club/Organizer Name</Label>
                         <Input id="club-name" placeholder="e.g., Robotics Club" value={clubName} onChange={(e) => setClubName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="university-name">University Name</Label>
+                        <Input id="university-name" placeholder="e.g., Central University" value={universityName} onChange={(e) => setUniversityName(e.target.value)} />
                     </div>
                 </CardContent>
             </Card>

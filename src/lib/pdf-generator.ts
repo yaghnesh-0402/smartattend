@@ -11,6 +11,7 @@ type PdfDetails = {
   hodName: string;
   eventName: string;
   clubName: string;
+  universityName: string;
 };
 
 // Extend jsPDF with the autoTable plugin
@@ -55,7 +56,7 @@ export const generateAttendancePdf = (
   startY += 5;
   doc.text(`Department of ${branch},`, 15, startY);
   startY += 5;
-  doc.text('University Name,', 15, startY); // Replace with actual university name if available
+  doc.text(`${details.universityName},`, 15, startY);
   startY += 15;
 
   doc.setFont('times', 'bold');
