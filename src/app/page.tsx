@@ -83,37 +83,40 @@ export default function SmartAttend() {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    if (Quagga.initialized) {
+    // Quagga.stop() might not be necessary if we only initialize it for decodeSingle
+    // but we call it just in case to be safe.
+    try {
       Quagga.stop();
+    } catch(e) {
+      // It's okay if Quagga wasn't initialized
     }
     setIsScanning(false);
   };
-
-  const startScanner = () => {
+  
+  const startScanner = async () => {
     setStudent(null);
     setError(null);
     setScannedData(null);
     setCapturedImage(null);
 
-    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
-      .then(stream => {
-        setHasCameraPermission(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      setHasCameraPermission(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
         setIsScanning(true);
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play();
-        }
-      })
-      .catch(err => {
-        console.error("Camera access denied:", err);
-        setHasCameraPermission(false);
-        setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
-        toast({
-          variant: "destructive",
-          title: "Camera Access Denied",
-          description: "Please enable camera permissions to use the scanner.",
-        });
+      }
+    } catch (err) {
+      console.error("Camera access denied:", err);
+      setHasCameraPermission(false);
+      setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
+      toast({
+        variant: "destructive",
+        title: "Camera Access Denied",
+        description: "Please enable camera permissions to use the scanner.",
       });
+    }
   };
   
   const captureAndScan = () => {
