@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Barcode, Camera, CheckCircle, Loader2, XCircle } from 'lucide-react';
+import { Barcode, Camera, CheckCircle, Loader2, UserPlus, Users, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
@@ -11,6 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import Quagga from '@ericblade/quagga2';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 type Student = {
   id: string;
@@ -34,6 +35,7 @@ export default function SmartAttend() {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
+  const [attendingStudents, setAttendingStudents] = React.useState<Student[]>([]);
 
   const stopScanner = React.useCallback(() => {
     if (Quagga.initialized) {
@@ -185,6 +187,24 @@ export default function SmartAttend() {
     }
   };
 
+  const handleAddToAttendance = () => {
+    if (!student) return;
+
+    if (attendingStudents.some((s) => s.id === student.id)) {
+      toast({
+        variant: 'destructive',
+        title: 'Already Attending',
+        description: `${student.name} is already on the attendance list.`,
+      });
+    } else {
+      setAttendingStudents((prev) => [student, ...prev]);
+      toast({
+        title: 'Attendance Marked',
+        description: `${student.name} has been added to the list.`,
+      });
+    }
+  };
+
   React.useEffect(() => {
     Quagga.initialized = false;
     return () => {
@@ -283,7 +303,7 @@ export default function SmartAttend() {
               <CardTitle className="font-headline">Student Identified</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 mb-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={student.avatarUrl} alt={student.name} data-ai-hint="student portrait" />
                   <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
@@ -296,12 +316,45 @@ export default function SmartAttend() {
                   <p className="text-sm text-muted-foreground font-mono">ID: {student.barcode}</p>
                 </div>
               </div>
+              <Button onClick={handleAddToAttendance} className="w-full">
+                <UserPlus className="mr-2" /> Add to Attendance
+              </Button>
             </CardContent>
           </Card>
         )}
       </div>
+
+      {attendingStudents.length > 0 && (
+        <Card className="mt-6 w-full max-w-2xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users />
+              Attending Students ({attendingStudents.length})
+            </CardTitle>
+            <CardDescription>Students who have been marked as present.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Roll No</TableHead>
+                  <TableHead>Branch</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {attendingStudents.map((s) => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium">{s.name}</TableCell>
+                    <TableCell>{s.rollNo}</TableCell>
+                    <TableCell>{s.branch}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
-
-    
