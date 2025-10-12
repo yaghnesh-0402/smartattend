@@ -20,6 +20,7 @@ export const generateAttendancePdf = (
   const doc = new jsPDF() as jsPDFWithAutoTable;
   const today = format(new Date(), 'MMMM dd, yyyy');
   const eventName = 'the upcoming technical workshop'; // You can make this dynamic if needed
+  let startY = 85;
 
   // 1. Set Document Properties
   doc.setProperties({
@@ -34,7 +35,7 @@ export const generateAttendancePdf = (
   doc.setFontSize(11);
   doc.setFont('times', 'normal');
   doc.text(`Date: ${today}`, 15, 30);
-  
+
   // 3. Add Letter Body
   doc.setFontSize(12);
   doc.setFont('times', 'normal');
@@ -62,7 +63,11 @@ Thank you.
 Sincerely,
 Event Coordinator`;
 
-  doc.text(bodyText, 15, 85);
+  const bodyLines = doc.splitTextToSize(bodyText, 180);
+  doc.text(bodyLines, 15, startY);
+  
+  // Calculate Y position for the table after the body text
+  startY += (bodyLines.length * 5) + 10;
 
   // 4. Add Student Table
   const tableColumn = ['S.No', 'Student Name', 'Roll Number'];
@@ -75,7 +80,7 @@ Event Coordinator`;
   doc.autoTable({
     head: [tableColumn],
     body: tableRows,
-    startY: doc.previousAutoTable.finalY + 75,
+    startY: startY,
     headStyles: {
       fillColor: [30, 30, 30], // Dark gray header
     },
@@ -88,5 +93,5 @@ Event Coordinator`;
   });
 
   // 5. Save the PDF
-  doc.save(`Attendance-Report-${branch}.pdf`);
+  doc.save(`Attendance-Report-${branch}${year ? `-${year}` : ''}.pdf`);
 };
