@@ -11,6 +11,7 @@ import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
+import Link from 'next/link';
 
 type Student = {
   id: string;
@@ -40,6 +41,8 @@ export default function SmartAttend() {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
+    // It's good practice to wrap Quagga.stop() in a try-catch block
+    // as it can sometimes throw errors if it's not fully initialized.
     try {
       if ((Quagga as any).initialized) {
         Quagga.stop();
@@ -147,7 +150,7 @@ export default function SmartAttend() {
           src: dataUri,
           numOfWorkers: 0, 
           decoder: {
-            readers: ["code_128_reader", "code_39_reader", "ean_reader", "upc_reader"]
+            readers: ["code_128_reader", "code_39_reader"]
           },
         }, (result) => {
           setIsLoading(false);
@@ -169,6 +172,7 @@ export default function SmartAttend() {
 
 
   React.useEffect(() => {
+    // Cleanup function to stop the scanner when the component unmounts
     return () => {
       stopScanner();
     };
@@ -239,7 +243,7 @@ export default function SmartAttend() {
           </div>
         )}
         
-        {scannedData && !isLoading && !student && !error && (
+        {scannedData && !isLoading && !student && (
             <Card className="mt-4 w-full">
                 <CardHeader>
                 <CardTitle className="font-headline text-center">Detected Barcode</CardTitle>
@@ -280,6 +284,12 @@ export default function SmartAttend() {
             </CardContent>
           </Card>
         )}
+
+        <div className="mt-6 text-center">
+            <Link href="/admin" className="text-sm text-muted-foreground hover:text-primary underline">
+                Go to Admin Page
+            </Link>
+        </div>
       </div>
     </div>
   );
