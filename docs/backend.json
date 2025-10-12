@@ -29,6 +29,10 @@
         "barcode": {
           "type": "string",
           "description": "The barcode associated with the student ID card."
+        },
+        "avatarUrl": {
+          "type": "string",
+          "description": "URL for the student's avatar image."
         }
       },
       "required": [
@@ -37,171 +41,25 @@
         "name",
         "year",
         "section",
-        "barcode"
-      ]
-    },
-    "Event": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Event",
-      "type": "object",
-      "description": "Represents an event for which attendance is tracked.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the event."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the event."
-        },
-        "description": {
-          "type": "string",
-          "description": "A description of the event."
-        },
-        "date": {
-          "type": "string",
-          "description": "The date of the event.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description",
-        "date"
-      ]
-    },
-    "Attendance": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Attendance",
-      "type": "object",
-      "description": "Represents the attendance record of a student for an event.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the attendance record."
-        },
-        "studentId": {
-          "type": "string",
-          "description": "Reference to Student. (Relationship: Student 1:N Attendance)"
-        },
-        "eventId": {
-          "type": "string",
-          "description": "Reference to Event. (Relationship: Event 1:N Attendance)"
-        },
-        "attendanceTime": {
-          "type": "string",
-          "description": "The time the student's attendance was recorded.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "studentId",
-        "eventId",
-        "attendanceTime"
-      ]
-    },
-    "Department": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Department",
-      "type": "object",
-      "description": "Represents a department to which students belong and attendance reports are sent.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the department."
-        },
-        "name": {
-          "type": "string",
-          "description": "The name of the department."
-        },
-        "email": {
-          "type": "string",
-          "description": "Email address for sending attendance reports.",
-          "format": "email"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "email"
+        "barcode",
+        "avatarUrl"
       ]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/students/{studentId}",
-        "definition": {
-          "entityName": "Student",
-          "schema": {
-            "$ref": "#/backend/entities/Student"
-          },
-          "description": "Stores student information, including roll number, name, year, section, and barcode.",
-          "params": [
-            {
-              "name": "studentId",
-              "description": "The unique identifier of the student."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/events/{eventId}",
-        "definition": {
-          "entityName": "Event",
-          "schema": {
-            "$ref": "#/backend/entities/Event"
-          },
-          "description": "Stores event information, including name, description, and date.",
-          "params": [
-            {
-              "name": "eventId",
-              "description": "The unique identifier of the event."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/attendances/{attendanceId}",
-        "definition": {
-          "entityName": "Attendance",
-          "schema": {
-            "$ref": "#/backend/entities/Attendance"
-          },
-          "description": "Stores attendance records for students at events. Includes studentId, eventId, and attendanceTime.",
-          "params": [
-            {
-              "name": "attendanceId",
-              "description": "The unique identifier of the attendance record."
-            }
-          ]
-        }
-      },
-      {
-        "path": "/departments/{departmentId}",
-        "definition": {
-          "entityName": "Department",
-          "schema": {
-            "$ref": "#/backend/entities/Department"
-          },
-          "description": "Stores department information, including name and email for sending attendance reports.",
-          "params": [
-            {
-              "name": "departmentId",
-              "description": "The unique identifier of the department."
-            }
-          ]
-        }
+    "rules": "firestore.rules",
+    "collections": {
+      "students": {
+        "schema": {
+          "$ref": "#/entities/Student"
+        },
+        "description": "Stores information about each student."
       }
-    ],
-    "reasoning": "The Firestore structure is designed to support the ScanAttend application's barcode-based attendance tracking system. It prioritizes authorization independence by denormalizing relevant student data (year, section) into the attendance records. This eliminates the need for `get()` calls in security rules, enabling atomic operations and easier debugging. The structure segregates student data, event information, and attendance records into separate collections to maintain a homogeneous security posture within each collection.\n\nSpecifically, the `attendances` collection stores attendance records, including denormalized student year and section. This denormalization addresses authorization independence, as rules can validate attendance based on the student's year/section without retrieving data from the `students` collection.\n\nThis design supports the required QAPs (Rules are not Filters). List operations on attendance can be secured by checking the user's role in the department and comparing it to the denormalized departmentId on the attendance document. This prevents filtering based on unauthorized criteria."
+    }
   }
 }
