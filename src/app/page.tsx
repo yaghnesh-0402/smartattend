@@ -10,6 +10,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import Image from 'next/image';
 
 type Student = {
   id: string;
@@ -31,6 +32,7 @@ export default function SmartAttend() {
   const [error, setError] = React.useState<string | null>(null);
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
+  const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
 
   const fetchStudent = async (barcode: string) => {
       setIsLoading(true);
@@ -72,22 +74,26 @@ export default function SmartAttend() {
         });
       } finally {
         setIsLoading(false);
-        stopScanner();
       }
   };
 
-  const handleDetected = (result: any) => {
-    const code = result.codeResult.code;
-    if (code && code !== scannedData) {
-      Quagga.offDetected(handleDetected);
-      fetchStudent(code);
+  const stopScanner = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
     }
+    if (Quagga.initialized) {
+      Quagga.stop();
+    }
+    setIsScanning(false);
   };
 
   const startScanner = () => {
     setStudent(null);
     setError(null);
     setScannedData(null);
+    setCapturedImage(null);
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       .then(stream => {
@@ -96,36 +102,6 @@ export default function SmartAttend() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           videoRef.current.play();
-
-          Quagga.init({
-            inputStream: {
-              name: "Live",
-              type: "LiveStream",
-              target: videoRef.current,
-              constraints: {
-                width: 640,
-                height: 480,
-                facingMode: 'environment',
-              },
-            },
-            locator: {
-              patchSize: "medium",
-              halfSample: true,
-            },
-            decoder: {
-              readers: ["code_128_reader", "code_39_reader"]
-            },
-            locate: false,
-          }, (err) => {
-            if (err) {
-              console.error("Quagga initialization failed:", err);
-              setError("Failed to initialize barcode scanner.");
-              setIsScanning(false);
-              return;
-            }
-            Quagga.start();
-            Quagga.onDetected(handleDetected);
-          });
         }
       })
       .catch(err => {
@@ -139,26 +115,53 @@ export default function SmartAttend() {
         });
       });
   };
+  
+  const captureAndScan = () => {
+    if (videoRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+        const dataUri = canvas.toDataURL('image/jpeg');
+        setCapturedImage(dataUri);
+        stopScanner();
+        setIsLoading(true);
 
-  const stopScanner = () => {
-    if (isScanning) {
-      Quagga.offDetected(handleDetected);
-      Quagga.stop();
-      if (videoRef.current && videoRef.current.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
-        videoRef.current.srcObject = null;
+        Quagga.decodeSingle({
+          src: dataUri,
+          numOfWorkers: 0,
+          inputStream: {
+            size: 800
+          },
+          decoder: {
+            readers: ["code_128_reader", "code_39_reader"]
+          },
+          locate: true,
+        }, (result) => {
+          if (result && result.codeResult) {
+            fetchStudent(result.codeResult.code);
+          } else {
+            setError('Could not detect a barcode. Please try again.');
+            setScannedData(null);
+            toast({
+              variant: 'destructive',
+              title: 'Detection Failed',
+              description: 'No barcode was found in the captured image.',
+            });
+            setIsLoading(false);
+          }
+        });
       }
-      setIsScanning(false);
     }
   };
+
 
   React.useEffect(() => {
     return () => {
       // Ensure scanner is stopped on component unmount
-      if (Quagga.initialized) {
-        Quagga.stop();
-      }
+      stopScanner();
     };
   }, []);
 
@@ -177,27 +180,33 @@ export default function SmartAttend() {
             <CardHeader>
                 <CardTitle className="font-headline text-center">Attendance Scanner</CardTitle>
                 <CardDescription className="text-center">
-                    Position the student ID barcode in front of the camera.
+                    {isScanning ? 'Position the barcode and capture.' : 'Press "Start Scanning" to activate the camera.'}
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
               <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                <video ref={videoRef} className={`w-full h-full object-cover ${!isScanning ? 'hidden' : ''}`} autoPlay muted playsInline />
-                {!isScanning && (
+                {isScanning && (
+                  <>
+                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                        <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
+                    </div>
+                  </>
+                )}
+                {capturedImage && !isScanning && (
+                  <Image src={capturedImage} alt="Captured barcode" layout="fill" objectFit="contain" />
+                )}
+                {!isScanning && !capturedImage && (
                     <div className="text-center text-muted-foreground">
                         <Camera className="size-16 mx-auto" />
                         <p>Camera is off</p>
                     </div>
                 )}
-                 {isScanning && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
-                    </div>
-                 )}
               </div>
                 
               {hasCameraPermission === false && (
                 <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
                     <AlertTitle>Camera Permission Denied</AlertTitle>
                     <AlertDescription>
                         Please enable camera permissions in your browser settings to use the scanner.
@@ -210,8 +219,8 @@ export default function SmartAttend() {
                       <Camera className="mr-2" /> Start Scanning
                   </Button>
               ) : (
-                  <Button onClick={stopScanner} variant="destructive" className="w-full">
-                      <XCircle className="mr-2" /> Stop Scanning
+                  <Button onClick={captureAndScan} className="w-full">
+                      <Barcode className="mr-2" /> Capture & Scan
                   </Button>
               )}
             </CardContent>
@@ -220,7 +229,7 @@ export default function SmartAttend() {
         {isLoading && (
             <div className="text-center p-6 mt-4">
                 <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                <p className="mt-2 text-muted-foreground">Fetching student details...</p>
+                <p className="mt-2 text-muted-foreground">{capturedImage ? 'Processing image...' : 'Fetching student details...'}</p>
             </div>
         )}
 
