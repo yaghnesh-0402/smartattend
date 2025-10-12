@@ -1,3 +1,82 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "student-1",
+      "description": "Avatar for Aarav Sharma",
+      "imageUrl": "https://picsum.photos/seed/student1/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-2",
+      "description": "Avatar for Vivaan Singh",
+      "imageUrl": "https://picsum.photos/seed/student2/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-3",
+      "description": "Avatar for Aditya Kumar",
+      "imageUrl": "https://picsum.photos/seed/student3/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-4",
+      "description": "Avatar for Diya Gupta",
+      "imageUrl": "https://picsum.photos/seed/student4/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-5",
+      "description": "Avatar for Ishaan Patel",
+      "imageUrl": "https://picsum.photos/seed/student5/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-6",
+      "description": "Avatar for Ananya Reddy",
+      "imageUrl": "https://picsum.photos/seed/student6/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-7",
+      "description": "Avatar for Kabir Verma",
+      "imageUrl": "https://picsum.photos/seed/student7/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-8",
+      "description": "Avatar for Myra Khan",
+      "imageUrl": "https://picsum.photos/seed/student8/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-9",
+      "description": "Avatar for Reyansh Joshi",
+      "imageUrl": "https://picsum.photos/seed/student9/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-10",
+      "description": "Avatar for Saanvi Iyer",
+      "imageUrl": "https://picsum.photos/seed/student10/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-11",
+      "description": "Avatar for Arjun Nair",
+      "imageUrl": "https://picsum.photos/seed/student11/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "student-12",
+      "description": "Avatar for Zara Mehta",
+      "imageUrl": "https://picsum.photos/seed/student12/100/100",
+      "imageHint": "student portrait"
+    },
+    {
+      "id": "user-avatar",
+      "description": "Avatar for current user",
+      "imageUrl": "https://picsum.photos/seed/user-avatar/100/100",
+      "imageHint": "professional portrait"
+    }
+  ]
 }
