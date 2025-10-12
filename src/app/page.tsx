@@ -13,6 +13,8 @@ import Image from 'next/image';
 import Quagga from '@ericblade/quagga2';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { generateAttendancePdf } from '@/lib/pdf-generator';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 type Student = {
   id: string;
@@ -38,6 +40,11 @@ export default function SmartAttend() {
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
   const [attendingStudents, setAttendingStudents] = React.useState<Student[]>([]);
   const [groupBy, setGroupBy] = React.useState<'none' | 'branch' | 'year-branch'>('none');
+
+  // PDF Customization State
+  const [hodName, setHodName] = React.useState('');
+  const [eventName, setEventName] = React.useState('');
+  const [clubName, setClubName] = React.useState('');
 
 
   const stopScanner = React.useCallback(() => {
@@ -217,6 +224,17 @@ export default function SmartAttend() {
     setCapturedImage(null);
   };
   
+  const handleDownloadPdf = (students: Student[], branch: string, year?: string) => {
+    if (!hodName || !eventName || !clubName) {
+      toast({
+        variant: 'destructive',
+        title: 'Missing PDF Details',
+        description: 'Please fill in the HOD Name, Event Name, and Club Name before downloading the PDF.',
+      });
+      return;
+    }
+    generateAttendancePdf(students, branch, year, { hodName, eventName, clubName });
+  };
 
   React.useEffect(() => {
     Quagga.initialized = false;
@@ -268,7 +286,7 @@ export default function SmartAttend() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-background items-center justify-center p-4">
+    <div className="flex flex-col min-h-screen bg-background items-center p-4">
        <div className="w-full max-w-md mx-auto">
         <div className="flex items-center justify-center gap-2 mb-6">
             <Barcode className="size-10 text-primary" />
@@ -380,137 +398,160 @@ export default function SmartAttend() {
       </div>
 
       {attendingStudents.length > 0 && (
-        <Card className="mt-6 w-full max-w-4xl">
-          <CardHeader>
-            <div className="flex flex-wrap justify-between items-center gap-4">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <Users />
-                  Attending Students ({attendingStudents.length})
-                </CardTitle>
-                <CardDescription>Students who have been marked as present.</CardDescription>
-              </div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
-                  <Group className="mr-2" /> Group by Branch
-                </Button>
-                <Button variant={groupBy === 'year-branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
-                  <Group className="mr-2" /> Group by Year & Branch
-                </Button>
-                {groupBy !== 'none' && (
-                  <Button variant="ghost" size="sm" onClick={() => setGroupBy('none')}>
-                    <Ungroup className="mr-2" /> Clear Grouping
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {groupBy === 'none' ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Roll No</TableHead>
-                    <TableHead>Branch</TableHead>
-                    <TableHead>Year</TableHead>
-                    <TableHead>Section</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {attendingStudents.map((s) => (
-                    <TableRow key={s.id}>
-                      <TableCell className="font-medium">{s.name}</TableCell>
-                      <TableCell>{s.rollNo}</TableCell>
-                      <TableCell>{s.branch}</TableCell>
-                      <TableCell>{s.year}</TableCell>
-                      <TableCell>{s.section}</TableCell>
+        <div className="mt-6 w-full max-w-4xl">
+            <Card className="mb-6">
+                <CardHeader>
+                    <CardTitle>PDF Customization</CardTitle>
+                    <CardDescription>Enter the details to be included in the downloaded attendance report.</CardDescription>
+                </CardHeader>
+                <CardContent className="grid sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="hod-name">HOD Name</Label>
+                        <Input id="hod-name" placeholder="e.g., Dr. Jane Smith" value={hodName} onChange={(e) => setHodName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="event-name">Event Name</Label>
+                        <Input id="event-name" placeholder="e.g., Tech Summit 2024" value={eventName} onChange={(e) => setEventName(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="club-name">Club/Organizer Name</Label>
+                        <Input id="club-name" placeholder="e.g., Robotics Club" value={clubName} onChange={(e) => setClubName(e.target.value)} />
+                    </div>
+                </CardContent>
+            </Card>
+
+            <Card>
+            <CardHeader>
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <CardTitle className="flex items-center gap-2">
+                    <Users />
+                    Attending Students ({attendingStudents.length})
+                    </CardTitle>
+                    <CardDescription>Students who have been marked as present.</CardDescription>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
+                    <Group className="mr-2" /> Group by Branch
+                    </Button>
+                    <Button variant={groupBy === 'year-branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
+                    <Group className="mr-2" /> Group by Year & Branch
+                    </Button>
+                    {groupBy !== 'none' && (
+                    <Button variant="ghost" size="sm" onClick={() => setGroupBy('none')}>
+                        <Ungroup className="mr-2" /> Clear Grouping
+                    </Button>
+                    )}
+                </div>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {groupBy === 'none' ? (
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Roll No</TableHead>
+                        <TableHead>Branch</TableHead>
+                        <TableHead>Year</TableHead>
+                        <TableHead>Section</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : groupBy === 'year-branch' ? (
-              <div className="space-y-6">
-                {(groupedStudents as [string, Map<string, Student[]>][])?.map(([year, branchMap]) => (
-                  <div key={year}>
-                    <h3 className="text-xl font-bold mb-4">
-                      Year: {year}
-                    </h3>
-                    <div className="space-y-4 pl-4">
-                      {Array.from(branchMap.entries()).map(([branch, students]) => (
-                        <div key={branch}>
-                           <div className="flex justify-between items-center mb-2">
-                             <h4 className="text-lg font-semibold capitalize">
-                              Branch: {branch} ({students.length})
-                            </h4>
-                            <Button variant="outline" size="sm" onClick={() => generateAttendancePdf(students, branch, year)}>
-                              <Download className="mr-2 h-4 w-4" />
-                              Download PDF
-                            </Button>
-                          </div>
-                          <Table>
-                             <TableHeader>
-                              <TableRow>
-                                <TableHead>Name</TableHead>
-                                <TableHead>Roll No</TableHead>
-                                <TableHead>Section</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {students.map((s) => (
-                                <TableRow key={s.id}>
-                                  <TableCell className="font-medium">{s.name}</TableCell>
-                                  <TableCell>{s.rollNo}</TableCell>
-                                  <TableCell>{s.section}</TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {(groupedStudents as [string, Student[]][])?.map(([groupKey, students]) => (
-                  <div key={groupKey}>
-                    <div className="flex justify-between items-center mb-2">
-                      <h3 className="text-lg font-semibold capitalize">
-                        {groupBy}: {groupKey} ({students.length})
-                      </h3>
-                      <Button variant="outline" size="sm" onClick={() => generateAttendancePdf(students, groupKey, undefined)}>
-                          <Download className="mr-2 h-4 w-4" />
-                          Download PDF
-                      </Button>
-                    </div>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Roll No</TableHead>
-                          <TableHead>Year</TableHead>
-                          <TableHead>Section</TableHead>
+                    </TableHeader>
+                    <TableBody>
+                    {attendingStudents.map((s) => (
+                        <TableRow key={s.id}>
+                        <TableCell className="font-medium">{s.name}</TableCell>
+                        <TableCell>{s.rollNo}</TableCell>
+                        <TableCell>{s.branch}</TableCell>
+                        <TableCell>{s.year}</TableCell>
+                        <TableCell>{s.section}</TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {students.map((s) => (
-                          <TableRow key={s.id}>
-                            <TableCell className="font-medium">{s.name}</TableCell>
-                            <TableCell>{s.rollNo}</TableCell>
-                            <TableCell>{s.year}</TableCell>
-                            <TableCell>{s.section}</TableCell>
-                          </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                ) : groupBy === 'year-branch' ? (
+                <div className="space-y-6">
+                    {(groupedStudents as [string, Map<string, Student[]>][])?.map(([year, branchMap]) => (
+                    <div key={year}>
+                        <h3 className="text-xl font-bold mb-4">
+                        Year: {year}
+                        </h3>
+                        <div className="space-y-4 pl-4">
+                        {Array.from(branchMap.entries()).map(([branch, students]) => (
+                            <div key={branch}>
+                            <div className="flex justify-between items-center mb-2">
+                                <h4 className="text-lg font-semibold capitalize">
+                                Branch: {branch} ({students.length})
+                                </h4>
+                                <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(students, branch, year)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Download PDF
+                                </Button>
+                            </div>
+                            <Table>
+                                <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Roll No</TableHead>
+                                    <TableHead>Section</TableHead>
+                                </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                {students.map((s) => (
+                                    <TableRow key={s.id}>
+                                    <TableCell className="font-medium">{s.name}</TableCell>
+                                    <TableCell>{s.rollNo}</TableCell>
+                                    <TableCell>{s.section}</TableCell>
+                                    </TableRow>
+                                ))}
+                                </TableBody>
+                            </Table>
+                            </div>
                         ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        </div>
+                    </div>
+                    ))}
+                </div>
+                ) : (
+                <div className="space-y-6">
+                    {(groupedStudents as [string, Student[]][])?.map(([groupKey, students]) => (
+                    <div key={groupKey}>
+                        <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-lg font-semibold capitalize">
+                            {groupBy}: {groupKey} ({students.length})
+                        </h3>
+                        <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(students, groupKey, undefined)}>
+                            <Download className="mr-2 h-4 w-4" />
+                            Download PDF
+                        </Button>
+                        </div>
+                        <Table>
+                        <TableHeader>
+                            <TableRow>
+                            <TableHead>Name</TableHead>
+                            <TableHead>Roll No</TableHead>
+                            <TableHead>Year</TableHead>
+                            <TableHead>Section</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {students.map((s) => (
+                            <TableRow key={s.id}>
+                                <TableCell className="font-medium">{s.name}</TableCell>
+                                <TableCell>{s.rollNo}</TableCell>
+                                <TableCell>{s.year}</TableCell>
+                                <TableCell>{s.section}</TableCell>
+                            </TableRow>
+                            ))}
+                        </TableBody>
+                        </Table>
+                    </div>
+                    ))}
+                </div>
+                )}
+            </CardContent>
+            </Card>
+        </div>
       )}
     </div>
   );

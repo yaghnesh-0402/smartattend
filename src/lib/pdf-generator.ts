@@ -7,6 +7,12 @@ type Student = {
   rollNo: string;
 };
 
+type PdfDetails = {
+  hodName: string;
+  eventName: string;
+  clubName: string;
+};
+
 // Extend jsPDF with the autoTable plugin
 interface jsPDFWithAutoTable extends jsPDF {
   autoTable: (options: any) => jsPDF;
@@ -15,12 +21,12 @@ interface jsPDFWithAutoTable extends jsPDF {
 export const generateAttendancePdf = (
   students: Student[],
   branch: string,
-  year?: string | undefined
+  year: string | undefined,
+  details: PdfDetails
 ) => {
   const doc = new jsPDF() as jsPDFWithAutoTable;
   const today = format(new Date(), 'MMMM dd, yyyy');
-  const eventName = 'the upcoming technical workshop'; // You can make this dynamic if needed
-  let startY = 85;
+  let startY = 20;
 
   // 1. Set Document Properties
   doc.setProperties({
@@ -30,38 +36,47 @@ export const generateAttendancePdf = (
   // 2. Add Header
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('Attendance Submission Report', 105, 20, { align: 'center' });
+  doc.text('Attendance Submission Report', 105, startY, { align: 'center' });
+  startY += 10;
 
   doc.setFontSize(11);
   doc.setFont('times', 'normal');
-  doc.text(`Date: ${today}`, 15, 30);
+  doc.text(`Date: ${today}`, 15, startY);
+  startY += 15;
 
   // 3. Add Letter Body
   doc.setFontSize(12);
   doc.setFont('times', 'normal');
-  doc.text('To,', 15, 45);
-  doc.text(`The Head of the Department,`, 15, 50);
-  doc.text(`Department of ${branch},`, 15, 55);
-  doc.text('University Name,', 15, 60); // Replace with actual university name if available
+  doc.text('To,', 15, startY);
+  startY += 5;
+  doc.text(details.hodName, 15, startY);
+  startY += 5;
+  doc.text(`The Head of the Department,`, 15, startY);
+  startY += 5;
+  doc.text(`Department of ${branch},`, 15, startY);
+  startY += 5;
+  doc.text('University Name,', 15, startY); // Replace with actual university name if available
+  startY += 15;
 
   doc.setFont('times', 'bold');
   doc.text(
-    `Subject: Submission of student attendance list for ${eventName}.`,
+    `Subject: Submission of student attendance list for ${details.eventName}.`,
     15,
-    75
+    startY
   );
+  startY += 10;
 
   doc.setFont('times', 'normal');
   const bodyText = `Respected Sir/Madam,
 
-Please find attached the list of students from ${year ? `Year ${year}, ` : ''}Department of ${branch}, who have confirmed their attendance for ${eventName}.
+Please find attached the list of students from ${year ? `Year ${year}, ` : ''}Department of ${branch}, who have confirmed their attendance for ${details.eventName}.
 
 We request your approval for the same.
 
 Thank you.
 
 Sincerely,
-Event Coordinator`;
+${details.clubName}`;
 
   const bodyLines = doc.splitTextToSize(bodyText, 180);
   doc.text(bodyLines, 15, startY);
