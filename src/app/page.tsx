@@ -29,7 +29,8 @@ export default function SmartAttend() {
   const [student, setStudent] = React.useState<Student | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const scannerRef = React.useRef<HTMLDivElement>(null);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+  const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
 
   const fetchStudent = async (barcode: string) => {
       setIsLoading(true);
@@ -82,38 +83,56 @@ export default function SmartAttend() {
     }
   };
 
-  const startScanner = () => {
-    if (scannerRef.current) {
-      setStudent(null);
-      setError(null);
-      setScannedData(null);
-      setIsScanning(true);
-      
-      Quagga.init({
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: scannerRef.current,
-          constraints: {
-            width: 640,
-            height: 480,
-            facingMode: "environment"
-          },
-        },
-        decoder: {
-          readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader", "i2of5_reader"]
-        },
-        locate: true
-      }, (err) => {
-        if (err) {
-          console.error('Quagga initialization failed:', err);
-          setError("Failed to initialize camera.");
-          setIsScanning(false);
-          return;
+  const startScanner = async () => {
+    setStudent(null);
+    setError(null);
+    setScannedData(null);
+    
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+        setHasCameraPermission(true);
+        setIsScanning(true);
+
+        if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.play();
         }
-        Quagga.start();
-        Quagga.onDetected(handleDetected);
-      });
+
+        Quagga.init({
+            inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: videoRef.current!,
+                constraints: {
+                    width: 640,
+                    height: 480,
+                    facingMode: "environment"
+                },
+            },
+            decoder: {
+                readers: ["code_128_reader", "ean_reader", "ean_8_reader", "code_39_reader", "code_39_vin_reader", "codabar_reader", "upc_reader", "upc_e_reader", "i2of5_reader"]
+            },
+            locate: true
+        }, (err) => {
+            if (err) {
+                console.error('Quagga initialization failed:', err);
+                setError("Failed to initialize barcode scanner.");
+                setIsScanning(false);
+                return;
+            }
+            Quagga.start();
+            Quagga.onDetected(handleDetected);
+        });
+
+    } catch (err) {
+        console.error("Camera access denied:", err);
+        setHasCameraPermission(false);
+        setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
+        toast({
+            variant: "destructive",
+            title: "Camera Access Denied",
+            description: "Please enable camera permissions to use the scanner.",
+        });
     }
   };
 
@@ -121,18 +140,21 @@ export default function SmartAttend() {
     if (isScanning) {
         Quagga.offDetected(handleDetected);
         Quagga.stop();
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+            videoRef.current.srcObject = null;
+        }
         setIsScanning(false);
     }
   };
 
   React.useEffect(() => {
     return () => {
-        if (isScanning) {
-            stopScanner();
-        }
+        stopScanner();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isScanning]);
+  }, []);
 
 
   return (
@@ -155,7 +177,8 @@ export default function SmartAttend() {
             <CardContent className="flex flex-col items-center gap-4">
               <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {isScanning ? (
-                  <div ref={scannerRef} className="w-full h-full">
+                  <div className="w-full h-full">
+                     <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
                      <div className="absolute inset-0 z-10 flex items-center justify-center">
                       <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
                     </div>
@@ -167,6 +190,15 @@ export default function SmartAttend() {
                   </div>
                 )}
               </div>
+                
+              {hasCameraPermission === false && (
+                <Alert variant="destructive">
+                    <AlertTitle>Camera Permission Denied</AlertTitle>
+                    <AlertDescription>
+                        Please enable camera permissions in your browser settings to use the scanner.
+                    </AlertDescription>
+                </Alert>
+              )}
 
               {!isScanning ? (
                   <Button onClick={startScanner} className="w-full">
