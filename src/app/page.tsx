@@ -32,19 +32,16 @@ export default function SmartAttend() {
   const [student, setStudent] = React.useState<Student | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
-    let stream: MediaStream | null = null;
-
-    const getCameraPermission = async () => {
-      if (isScanning) {
+    if (isScanning) {
+      const getCameraPermission = async () => {
         try {
-          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          // Just request permission, don't try to manage the stream here
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          // Stop the tracks immediately, react-barcode-scanner will handle it
+          stream.getTracks().forEach(track => track.stop());
           setHasCameraPermission(true);
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          }
         } catch (error) {
           console.error('Error accessing camera:', error);
           setHasCameraPermission(false);
@@ -55,19 +52,9 @@ export default function SmartAttend() {
             description: 'Please enable camera permissions in your browser settings.',
           });
         }
-      }
-    };
-
-    getCameraPermission();
-
-    return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-    };
+      };
+      getCameraPermission();
+    }
   }, [isScanning, toast]);
 
   const handleScan = async (result: any) => {
@@ -145,16 +132,14 @@ export default function SmartAttend() {
               <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
                 {isScanning ? (
                   <>
-                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                    <div className="absolute inset-0 bg-black/20 z-10" />
-                    <div className="absolute inset-0 z-20 flex items-center justify-center">
-                      <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
-                    </div>
-                     <BarcodeScanner
+                    <BarcodeScanner
                         onScan={handleScan}
                         videoConstraints={{ facingMode: 'environment' }}
                         stopStream={!isScanning}
                       />
+                    <div className="absolute inset-0 z-10 flex items-center justify-center">
+                      <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
+                    </div>
                   </>
                 ) : (
                   <div className="text-center text-muted-foreground">
