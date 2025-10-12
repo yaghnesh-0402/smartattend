@@ -106,7 +106,7 @@ export default function SmartAttend() {
             setHasCameraPermission(true);
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
-                videoRef.current.play();
+                await videoRef.current.play();
                 setIsScanning(true);
             }
         } catch (err) {
@@ -153,11 +153,8 @@ export default function SmartAttend() {
             readers: ["code_128_reader", "code_39_reader"]
           },
           locate: false,
-          locator: {
-            patchSize: 'medium',
-            halfSample: true,
-          }
         }, (result) => {
+          setIsLoading(false);
           if (result && result.codeResult) {
             fetchStudent(result.codeResult.code);
           } else {
@@ -169,7 +166,6 @@ export default function SmartAttend() {
               description: 'No barcode was found in the captured image.',
             });
           }
-          setIsLoading(false);
         });
       }
     }
