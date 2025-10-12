@@ -17,6 +17,7 @@ type StudentData = {
   barcode: string;
   year: number;
   section: string;
+  branch: string;
   avatarUrl: string;
 };
 
@@ -28,6 +29,7 @@ const placeholderJson = JSON.stringify(
       "barcode": "22R11A6901",
       "year": 2,
       "section": "A",
+      "branch": "CSE",
       "avatarUrl": "https://picsum.photos/seed/student1/100/100"
     },
     {
@@ -36,6 +38,7 @@ const placeholderJson = JSON.stringify(
       "barcode": "22R11A6904",
       "year": 2,
       "section": "A",
+      "branch": "CSE",
       "avatarUrl": "https://picsum.photos/seed/student4/100/100"
     }
   ],
@@ -78,8 +81,8 @@ export default function AdminPage() {
 
       students.forEach((student) => {
         // Here we could add more robust validation if needed
-        if (!student.name || !student.barcode || !student.rollNumber) {
-            throw new Error(`A record is missing a required field (name, barcode, rollNumber).`);
+        if (!student.name || !student.barcode || !student.rollNumber || !student.branch) {
+            throw new Error(`A record is missing a required field (name, barcode, rollNumber, branch).`);
         }
         const docRef = collection(firestore, 'students').doc(); // Auto-generates an ID
         batch.set(docRef, student);
@@ -113,7 +116,7 @@ export default function AdminPage() {
             <CardTitle className="font-headline">Bulk Student Upload</CardTitle>
             <CardDescription>
               Paste a JSON array of student records below to add them to the database.
-              Each object in the array must have: name, rollNumber, barcode, year, section, and avatarUrl.
+              Each object in the array must have: name, rollNumber, barcode, year, section, branch, and avatarUrl.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

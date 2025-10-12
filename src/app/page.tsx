@@ -19,6 +19,7 @@ type Student = {
   rollNumber: string;
   year: number;
   section: string;
+  branch: string;
   barcode: string;
   avatarUrl: string;
 };
@@ -41,8 +42,6 @@ export default function SmartAttend() {
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    // It's good practice to wrap Quagga.stop() in a try-catch block
-    // as it can sometimes throw errors if it's not fully initialized.
     try {
       if ((Quagga as any).initialized) {
         Quagga.stop();
@@ -277,6 +276,7 @@ export default function SmartAttend() {
                 <div>
                   <p className="text-xl font-semibold">{student.name}</p>
                   <p className="text-muted-foreground font-code">Roll: {student.rollNumber}</p>
+                  <p className="text-muted-foreground">Branch: {student.branch}</p>
                   <p className="text-muted-foreground">Year: {student.year}, Section: {student.section}</p>
                   <p className="text-sm text-muted-foreground font-mono">ID: {student.barcode}</p>
                 </div>

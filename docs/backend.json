@@ -26,6 +26,10 @@
           "type": "string",
           "description": "The section the student belongs to."
         },
+        "branch": {
+          "type": "string",
+          "description": "The branch or department of the student."
+        },
         "barcode": {
           "type": "string",
           "description": "The barcode associated with the student ID card."
@@ -41,6 +45,7 @@
         "name",
         "year",
         "section",
+        "branch",
         "barcode",
         "avatarUrl"
       ]
