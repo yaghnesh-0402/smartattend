@@ -64,7 +64,7 @@ export default function SmartAttend() {
     }
   }, [isScanning, toast]);
 
-  const handleScan = async (err: any, result: any) => {
+  const handleScan = async (result: any) => {
     if (result) {
       const scannedBarcode = result.text;
       setScannedData(scannedBarcode);
@@ -109,9 +109,6 @@ export default function SmartAttend() {
         setIsLoading(false);
       }
     }
-    if (err) {
-      console.error(err);
-    }
   };
   
   const handleStartScan = () => {
@@ -148,7 +145,7 @@ export default function SmartAttend() {
                       <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
                     </div>
                      <BarcodeScanner
-                        onUpdate={handleScan}
+                        onScan={handleScan}
                         videoConstraints={{ facingMode: 'environment' }}
                         stopStream={!isScanning}
                       />
