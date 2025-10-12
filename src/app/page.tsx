@@ -11,7 +11,6 @@ import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
-import Link from 'next/link';
 
 type Student = {
   id: string;
@@ -43,7 +42,7 @@ export default function SmartAttend() {
       videoRef.current.srcObject = null;
     }
     try {
-      if ((Quagga as any).initialized) {
+      if (Quagga.getStatus() === 'running') {
         Quagga.stop();
       }
     } catch (e) {
@@ -101,34 +100,25 @@ export default function SmartAttend() {
     setError(null);
     setScannedData(null);
     setCapturedImage(null);
+    setHasCameraPermission(null);
 
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      try {
+    try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
         setHasCameraPermission(true);
         if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          await videoRef.current.play();
-          setIsScanning(true);
+            videoRef.current.srcObject = stream;
+            videoRef.current.play();
+            setIsScanning(true);
         }
-      } catch (err) {
+    } catch (err) {
         console.error("Camera access denied:", err);
         setHasCameraPermission(false);
         setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
         toast({
-          variant: "destructive",
-          title: "Camera Access Denied",
-          description: "Please enable camera permissions to use the scanner.",
+            variant: "destructive",
+            title: "Camera Access Denied",
+            description: "Please enable camera permissions to use the scanner.",
         });
-      }
-    } else {
-      setHasCameraPermission(false);
-      setError("Your browser does not support camera access.");
-      toast({
-        variant: "destructive",
-        title: "Camera Not Supported",
-        description: "Your browser does not support camera access.",
-      });
     }
   };
   
@@ -169,9 +159,7 @@ export default function SmartAttend() {
     }
   };
 
-
   React.useEffect(() => {
-    // Cleanup function to stop the scanner when the component unmounts
     return () => {
       stopScanner();
     };
@@ -284,12 +272,6 @@ export default function SmartAttend() {
             </CardContent>
           </Card>
         )}
-
-        <div className="mt-6 text-center">
-            <Link href="/admin" className="text-sm text-muted-foreground hover:text-primary underline">
-                Go to Admin Page
-            </Link>
-        </div>
       </div>
     </div>
   );
