@@ -286,37 +286,38 @@ export default function SmartAttend() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-background items-center p-4">
-       <div className="w-full max-w-md mx-auto">
-        <div className="flex items-center justify-center gap-2 mb-6">
+    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 items-center p-4 md:p-6 lg:p-8">
+       <div className="w-full max-w-lg mx-auto">
+        <div className="flex items-center justify-center gap-3 mb-6">
             <Barcode className="size-10 text-primary" />
-            <h1 className="text-4xl font-headline font-bold">
+            <h1 className="text-4xl font-headline font-bold text-gray-800 dark:text-gray-100">
               Smart Attend
             </h1>
         </div>
 
-        <Card>
+        <Card className="shadow-md dark:shadow-2xl">
           <CardHeader>
-            <CardTitle className="font-headline text-center">Attendance Scanner</CardTitle>
+            <CardTitle className="font-headline text-center text-2xl">Attendance Scanner</CardTitle>
             <CardDescription className="text-center">
-              {isScanning ? 'Position the barcode and capture.' : 'Press "Start Scanning" to activate the camera.'}
+              {isScanning ? 'Position the barcode inside the frame and capture.' : 'Press "Start Scanning" to activate the camera.'}
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
+            <div className="relative w-full aspect-video rounded-lg bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden border">
               <video ref={videoRef} className={`w-full h-full object-cover ${isScanning ? '' : 'hidden'}`} autoPlay muted playsInline />
               {capturedImage && !isScanning && (
                 <Image src={capturedImage} alt="Captured barcode" layout="fill" objectFit="contain" />
               )}
               {!isScanning && !capturedImage && (
-                <div className="text-center text-muted-foreground">
-                  <Camera className="size-16 mx-auto" />
-                  <p>Camera is off</p>
+                <div className="text-center text-muted-foreground p-4">
+                  <Camera className="size-16 mx-auto mb-2" />
+                  <p className="font-semibold">Camera is off</p>
+                  <p className="text-sm">Ready to scan attendance</p>
                 </div>
               )}
               {isScanning && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center">
-                  <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
+                  <div className="w-2/3 h-1/2 border-4 border-dashed border-primary/70 rounded-lg bg-black/10" />
                 </div>
               )}
             </div>
@@ -332,11 +333,11 @@ export default function SmartAttend() {
             )}
 
             {!isScanning ? (
-              <Button onClick={startScanner} className="w-full">
+              <Button onClick={startScanner} size="lg" className="w-full font-semibold">
                 <Camera className="mr-2" /> Start Scanning
               </Button>
             ) : (
-              <Button onClick={captureAndScan} className="w-full">
+              <Button onClick={captureAndScan} size="lg" className="w-full font-semibold">
                 <Barcode className="mr-2" /> Capture & Scan
               </Button>
             )}
@@ -351,18 +352,18 @@ export default function SmartAttend() {
         )}
         
         {scannedData && !isLoading && !student && (
-            <Card className="mt-4 w-full">
+            <Card className="mt-4 w-full shadow-md">
                 <CardHeader>
                 <CardTitle className="font-headline text-center">Detected Roll Number</CardTitle>
                 </CardHeader>
                 <CardContent>
-                <p className="text-center font-mono text-lg bg-muted p-2 rounded-md">{scannedData}</p>
+                <p className="text-center font-mono text-lg bg-muted p-3 rounded-md">{scannedData}</p>
                 </CardContent>
             </Card>
         )}
 
         {error && !isLoading && (
-          <Alert variant="destructive" className="mt-4">
+          <Alert variant="destructive" className="mt-4 shadow">
             <XCircle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -370,25 +371,25 @@ export default function SmartAttend() {
         )}
         
         {student && !isLoading && (
-          <Card className="mt-4 w-full">
-            <CardHeader className="text-center">
+          <Card className="mt-4 w-full shadow-lg dark:shadow-2xl overflow-hidden">
+            <CardHeader className="text-center bg-gray-50 dark:bg-gray-800/50 p-4">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
-              <CardTitle className="font-headline">Student Identified</CardTitle>
+              <CardTitle className="font-headline text-2xl">Student Identified</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 mb-4">
-                <Avatar className="h-20 w-20">
+            <CardContent className="p-4 md:p-6">
+              <div className="flex items-center gap-4 mb-6">
+                <Avatar className="h-20 w-20 border-2 border-primary/50">
                   <AvatarImage src={student.avatarUrl} alt={student.name} data-ai-hint="student portrait" />
-                  <AvatarFallback>{student.name.charAt(0)}</AvatarFallback>
+                  <AvatarFallback className="text-2xl">{student.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="text-xl font-semibold">{student.name}</p>
+                <div className="space-y-1">
+                  <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{student.name}</p>
                   <p className="text-muted-foreground font-code">Roll: {student.rollNo}</p>
-                  <p className="text-muted-foreground">Branch: {student.branch}</p>
-                  <p className="text-muted-foreground">Year: {student.year}, Section: {student.section}</p>
+                  <p className="text-muted-foreground">{student.branch}</p>
+                  <p className="text-muted-foreground text-sm">Year: {student.year}, Section: {student.section}</p>
                 </div>
               </div>
-              <Button onClick={handleAddToAttendance} className="w-full">
+              <Button onClick={handleAddToAttendance} className="w-full font-semibold" size="lg">
                 <UserPlus className="mr-2" /> Add to Attendance
               </Button>
             </CardContent>
@@ -397,47 +398,47 @@ export default function SmartAttend() {
       </div>
 
       {attendingStudents.length > 0 && (
-        <div className="mt-6 w-full max-w-4xl">
-            <Card className="mb-6">
+        <div className="mt-8 w-full max-w-6xl">
+            <Card className="mb-6 shadow-md">
                 <CardHeader>
                     <CardTitle>PDF Customization</CardTitle>
                     <CardDescription>Enter the details to be included in the downloaded attendance report.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="hod-name">HOD Name</Label>
                         <Input id="hod-name" placeholder="e.g., Dr. Jane Smith" value={hodName} onChange={(e) => setHodName(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="event-name">Event Name</Label>
                         <Input id="event-name" placeholder="e.g., Tech Summit 2024" value={eventName} onChange={(e) => setEventName(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="club-name">Club/Organizer Name</Label>
                         <Input id="club-name" placeholder="e.g., Robotics Club" value={clubName} onChange={(e) => setClubName(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                         <Label htmlFor="university-name">University Name</Label>
                         <Input id="university-name" placeholder="e.g., Central University" value={universityName} onChange={(e) => setUniversityName(e.target.value)} />
                     </div>
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card className="shadow-md">
             <CardHeader>
                 <div className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    <CardTitle className="flex items-center gap-2">
+                    <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
                     <Users />
                     Attending Students ({attendingStudents.length})
                     </CardTitle>
                     <CardDescription>Students who have been marked as present.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
+                    <Button variant={groupBy === 'branch' ? 'default' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
                     <Group className="mr-2" /> Group by Branch
                     </Button>
-                    <Button variant={groupBy === 'year-branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
+                    <Button variant={groupBy === 'year-branch' ? 'default' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
                     <Group className="mr-2" /> Group by Year & Branch
                     </Button>
                     {groupBy !== 'none' && (
@@ -475,16 +476,16 @@ export default function SmartAttend() {
                 ) : groupBy === 'year-branch' ? (
                 <div className="space-y-6">
                     {(groupedStudents as [string, Map<string, Student[]>][])?.map(([year, branchMap]) => (
-                    <div key={year}>
+                    <div key={year} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/30">
                         <h3 className="text-xl font-bold mb-4">
                         Year: {year}
                         </h3>
-                        <div className="space-y-4 pl-4">
+                        <div className="space-y-4 pl-4 border-l-2 border-primary/50">
                         {Array.from(branchMap.entries()).map(([branch, students]) => (
                             <div key={branch}>
                             <div className="flex justify-between items-center mb-2">
                                 <h4 className="text-lg font-semibold capitalize">
-                                Branch: {branch} ({students.length})
+                                Branch: {branch} <span className="font-normal text-muted-foreground">({students.length} students)</span>
                                 </h4>
                                 <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(students, branch, year)}>
                                 <Download className="mr-2 h-4 w-4" />
@@ -518,10 +519,10 @@ export default function SmartAttend() {
                 ) : (
                 <div className="space-y-6">
                     {(groupedStudents as [string, Student[]][])?.map(([groupKey, students]) => (
-                    <div key={groupKey}>
+                    <div key={groupKey} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/30">
                         <div className="flex justify-between items-center mb-2">
                         <h3 className="text-lg font-semibold capitalize">
-                            {groupBy}: {groupKey} ({students.length})
+                            {groupBy}: {groupKey} <span className="font-normal text-muted-foreground">({students.length} students)</span>
                         </h3>
                         <Button variant="outline" size="sm" onClick={() => handleDownloadPdf(students, groupKey, undefined)}>
                             <Download className="mr-2 h-4 w-4" />
