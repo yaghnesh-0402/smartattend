@@ -36,7 +36,7 @@ export default function SmartAttend() {
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
   const [attendingStudents, setAttendingStudents] = React.useState<Student[]>([]);
-  const [groupBy, setGroupBy] = React.useState<'none' | 'branch' | 'year'>('none');
+  const [groupBy, setGroupBy] = React.useState<'none' | 'branch' | 'year' | 'year-branch'>('none');
 
 
   const stopScanner = React.useCallback(() => {
@@ -234,15 +234,41 @@ export default function SmartAttend() {
     if (groupBy === 'none') {
       return null;
     }
-    const groups = new Map<string, Student[]>();
+
+    if (groupBy === 'year-branch') {
+      const yearGroups = new Map<string, Student[]>();
+      attendingStudents.forEach((student) => {
+        const yearKey = String(student.year);
+        if (!yearGroups.has(yearKey)) {
+          yearGroups.set(yearKey, []);
+        }
+        yearGroups.get(yearKey)!.push(student);
+      });
+
+      const nestedGroups = new Map<string, Map<string, Student[]>>();
+      yearGroups.forEach((students, year) => {
+        const branchGroups = new Map<string, Student[]>();
+        students.forEach((student) => {
+          const branchKey = student.branch;
+          if (!branchGroups.has(branchKey)) {
+            branchGroups.set(branchKey, []);
+          }
+          branchGroups.get(branchKey)!.push(student);
+        });
+        nestedGroups.set(year, branchGroups);
+      });
+      return Array.from(nestedGroups.entries());
+    }
+
+    const simpleGroups = new Map<string, Student[]>();
     attendingStudents.forEach((student) => {
-      const key = String(student[groupBy]);
-      if (!groups.has(key)) {
-        groups.set(key, []);
+      const key = String(student[groupBy as 'branch' | 'year']);
+      if (!simpleGroups.has(key)) {
+        simpleGroups.set(key, []);
       }
-      groups.get(key)!.push(student);
+      simpleGroups.get(key)!.push(student);
     });
-    return Array.from(groups.entries());
+    return Array.from(simpleGroups.entries());
   }, [attendingStudents, groupBy]);
 
 
@@ -370,11 +396,11 @@ export default function SmartAttend() {
                 <CardDescription>Students who have been marked as present.</CardDescription>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy('branch')}>
+                <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
                   <Group className="mr-2" /> Group by Branch
                 </Button>
-                <Button variant={groupBy === 'year' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy('year')}>
-                  <Group className="mr-2" /> Group by Year
+                <Button variant={groupBy === 'year-branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
+                  <Group className="mr-2" /> Group by Year & Branch
                 </Button>
                 {groupBy !== 'none' && (
                   <Button variant="ghost" size="sm" onClick={() => setGroupBy('none')}>
@@ -408,9 +434,46 @@ export default function SmartAttend() {
                   ))}
                 </TableBody>
               </Table>
+            ) : groupBy === 'year-branch' ? (
+              <div className="space-y-6">
+                {(groupedStudents as [string, Map<string, Student[]>][])?.map(([year, branchMap]) => (
+                  <div key={year}>
+                    <h3 className="text-xl font-bold mb-4">
+                      Year: {year}
+                    </h3>
+                    <div className="space-y-4 pl-4">
+                      {Array.from(branchMap.entries()).map(([branch, students]) => (
+                        <div key={branch}>
+                           <h4 className="text-lg font-semibold mb-2 capitalize">
+                            Branch: {branch} ({students.length})
+                          </h4>
+                          <Table>
+                             <TableHeader>
+                              <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Roll No</TableHead>
+                                <TableHead>Section</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {students.map((s) => (
+                                <TableRow key={s.id}>
+                                  <TableCell className="font-medium">{s.name}</TableCell>
+                                  <TableCell>{s.rollNo}</TableCell>
+                                  <TableCell>{s.section}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="space-y-6">
-                {groupedStudents?.map(([groupKey, students]) => (
+                {(groupedStudents as [string, Student[]][])?.map(([groupKey, students]) => (
                   <div key={groupKey}>
                     <h3 className="text-lg font-semibold mb-2 capitalize">
                       {groupBy}: {groupKey} ({students.length})
