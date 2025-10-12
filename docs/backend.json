@@ -10,7 +10,7 @@
           "type": "string",
           "description": "Unique identifier for the student."
         },
-        "rollNumber": {
+        "rollNo": {
           "type": "string",
           "description": "The roll number of the student."
         },
@@ -41,7 +41,7 @@
       },
       "required": [
         "id",
-        "rollNumber",
+        "rollNo",
         "name",
         "year",
         "section",

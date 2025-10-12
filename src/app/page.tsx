@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import Quagga from '@ericblade/quagga2';
 import { Barcode, Camera, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,11 +10,12 @@ import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
+import Quagga from '@ericblade/quagga2';
 
 type Student = {
   id: string;
   name: string;
-  rollNumber: string;
+  rollNo: string;
   year: number;
   section: string;
   branch: string;
@@ -36,20 +36,21 @@ export default function SmartAttend() {
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
 
   const stopScanner = React.useCallback(() => {
+    if (isScanning) {
+        try {
+            Quagga.stop();
+        } catch (e) {
+            console.warn("Quagga stop error, may be harmless:", e);
+        }
+    }
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
-    try {
-      if (Quagga.getStatus() === 'running') {
-        Quagga.stop();
-      }
-    } catch (e) {
-      console.warn("Quagga stop error, may be harmless:", e);
-    }
     setIsScanning(false);
-  }, []);
+  }, [isScanning]);
+
 
   const fetchStudent = async (barcode: string) => {
     setIsLoading(true);
@@ -107,8 +108,34 @@ export default function SmartAttend() {
         setHasCameraPermission(true);
         if (videoRef.current) {
             videoRef.current.srcObject = stream;
-            videoRef.current.play();
-            setIsScanning(true);
+            await videoRef.current.play();
+            
+            Quagga.init({
+              inputStream: {
+                name: "Live",
+                type: "LiveStream",
+                target: videoRef.current,
+                constraints: {
+                  width: { min: 640 },
+                  height: { min: 480 },
+                  facingMode: "environment",
+                  aspectRatio: { min: 1, max: 2 }
+                },
+              },
+              decoder: {
+                readers: ["code_128_reader", "ean_reader", "code_39_reader"]
+              },
+              locate: true,
+            }, (err) => {
+              if (err) {
+                console.error("Quagga initialization failed:", err);
+                setError("Failed to initialize scanner library.");
+                setHasCameraPermission(false);
+                return;
+              }
+              setIsScanning(true);
+              Quagga.start();
+            });
         }
     } catch (err) {
         console.error("Camera access denied:", err);
@@ -137,9 +164,9 @@ export default function SmartAttend() {
 
         Quagga.decodeSingle({
           src: dataUri,
-          numOfWorkers: 0, 
+          numOfWorkers: 0,
           decoder: {
-            readers: ["code_128_reader", "code_39_reader"]
+            readers: ["code_128_reader", "code_39_reader", "ean_reader"]
           },
         }, (result) => {
           setIsLoading(false);
@@ -263,7 +290,7 @@ export default function SmartAttend() {
                 </Avatar>
                 <div>
                   <p className="text-xl font-semibold">{student.name}</p>
-                  <p className="text-muted-foreground font-code">Roll: {student.rollNumber}</p>
+                  <p className="text-muted-foreground font-code">Roll: {student.rollNo}</p>
                   <p className="text-muted-foreground">Branch: {student.branch}</p>
                   <p className="text-muted-foreground">Year: {student.year}, Section: {student.section}</p>
                   <p className="text-sm text-muted-foreground font-mono">ID: {student.barcode}</p>
