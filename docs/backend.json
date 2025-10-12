@@ -12,7 +12,7 @@
         },
         "rollNo": {
           "type": "string",
-          "description": "The roll number of the student."
+          "description": "The roll number of the student, scanned from the barcode."
         },
         "name": {
           "type": "string",
@@ -30,10 +30,6 @@
           "type": "string",
           "description": "The branch or department of the student."
         },
-        "barcode": {
-          "type": "string",
-          "description": "The barcode associated with the student ID card."
-        },
         "avatarUrl": {
           "type": "string",
           "description": "URL for the student's avatar image."
@@ -46,7 +42,6 @@
         "year",
         "section",
         "branch",
-        "barcode",
         "avatarUrl"
       ]
     }
@@ -68,5 +63,3 @@
     }
   }
 }
-
-    

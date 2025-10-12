@@ -23,7 +23,6 @@ type Student = {
   year: number;
   section: string;
   branch: string;
-  barcode: string;
   avatarUrl: string;
 };
 
@@ -64,27 +63,27 @@ export default function SmartAttend() {
     setIsScanning(false);
   }, []);
 
-  const fetchStudent = async (barcode: string) => {
+  const fetchStudent = async (scannedRollNo: string) => {
     setIsLoading(true);
     setError(null);
     setStudent(null);
-    setScannedData(barcode);
+    setScannedData(scannedRollNo);
 
     try {
       if (!firestore) {
         throw new Error("Firestore is not initialized");
       }
       const studentsRef = collection(firestore, 'students');
-      const q = query(studentsRef, where('barcode', '==', barcode));
+      const q = query(studentsRef, where('rollNo', '==', scannedRollNo));
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
-        setError('No student found with this barcode.');
+        setError('No student found with this roll number.');
         setStudent(null);
         toast({
           variant: 'destructive',
           title: 'Student Not Found',
-          description: `No student record matches barcode: ${barcode}`,
+          description: `No student record matches roll number: ${scannedRollNo}`,
         });
       } else {
         const studentDoc = querySnapshot.docs[0];
@@ -354,7 +353,7 @@ export default function SmartAttend() {
         {scannedData && !isLoading && !student && (
             <Card className="mt-4 w-full">
                 <CardHeader>
-                <CardTitle className="font-headline text-center">Detected Barcode</CardTitle>
+                <CardTitle className="font-headline text-center">Detected Roll Number</CardTitle>
                 </CardHeader>
                 <CardContent>
                 <p className="text-center font-mono text-lg bg-muted p-2 rounded-md">{scannedData}</p>
@@ -387,7 +386,6 @@ export default function SmartAttend() {
                   <p className="text-muted-foreground font-code">Roll: {student.rollNo}</p>
                   <p className="text-muted-foreground">Branch: {student.branch}</p>
                   <p className="text-muted-foreground">Year: {student.year}, Section: {student.section}</p>
-                  <p className="text-sm text-muted-foreground font-mono">ID: {student.barcode}</p>
                 </div>
               </div>
               <Button onClick={handleAddToAttendance} className="w-full">
