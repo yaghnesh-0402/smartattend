@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import dynamic from 'next/dynamic';
 import { Barcode, Camera, CheckCircle, Loader2, XCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +10,8 @@ import { collection, query, where, getDocs, DocumentData } from 'firebase/firest
 import { useFirestore } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-// @ts-ignore
-import BarcodeScannerComponent from 'react-barcode-scanner';
+
+const BarcodeScanner = dynamic(() => import('react-barcode-scanner').then(mod => mod.BarcodeScanner), { ssr: false });
 
 type Student = {
   id: string;
@@ -146,7 +147,7 @@ export default function SmartAttend() {
                     <div className="absolute inset-0 z-20 flex items-center justify-center">
                       <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
                     </div>
-                     <BarcodeScannerComponent
+                     <BarcodeScanner
                         onUpdate={handleScan}
                         videoConstraints={{ facingMode: 'environment' }}
                         stopStream={!isScanning}
