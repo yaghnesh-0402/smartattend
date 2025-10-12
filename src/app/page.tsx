@@ -108,10 +108,14 @@ export default function SmartAttend() {
                 facingMode: 'environment',
               },
             },
+            locator: {
+              patchSize: "medium",
+              halfSample: true,
+            },
             decoder: {
               readers: ["code_128_reader", "code_39_reader"]
             },
-            locate: true,
+            locate: false,
           }, (err) => {
             if (err) {
               console.error("Quagga initialization failed:", err);
