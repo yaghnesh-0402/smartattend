@@ -34,6 +34,22 @@ export default function SmartAttend() {
   const [hasCameraPermission, setHasCameraPermission] = React.useState<boolean | null>(null);
   const [capturedImage, setCapturedImage] = React.useState<string | null>(null);
 
+  const stopScanner = () => {
+    if (videoRef.current && videoRef.current.srcObject) {
+      const stream = videoRef.current.srcObject as MediaStream;
+      stream.getTracks().forEach(track => track.stop());
+      videoRef.current.srcObject = null;
+    }
+    try {
+      if (Quagga.initialized) {
+        Quagga.stop();
+      }
+    } catch(e) {
+      console.warn("Quagga stop error, may be harmless:", e);
+    }
+    setIsScanning(false);
+  };
+  
   const fetchStudent = async (barcode: string) => {
       setIsLoading(true);
       setError(null);
@@ -50,6 +66,7 @@ export default function SmartAttend() {
 
         if (querySnapshot.empty) {
           setError('No student found with this barcode.');
+          setStudent(null);
           toast({
             variant: 'destructive',
             title: 'Student Not Found',
@@ -76,20 +93,6 @@ export default function SmartAttend() {
         setIsLoading(false);
       }
   };
-
-  const stopScanner = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    try {
-      Quagga.stop();
-    } catch(e) {
-      // It's okay if Quagga wasn't initialized
-    }
-    setIsScanning(false);
-  };
   
   const startScanner = async () => {
     setStudent(null);
@@ -97,23 +100,33 @@ export default function SmartAttend() {
     setScannedData(null);
     setCapturedImage(null);
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      setHasCameraPermission(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        setIsScanning(true);
-      }
-    } catch (err) {
-      console.error("Camera access denied:", err);
-      setHasCameraPermission(false);
-      setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
-      toast({
-        variant: "destructive",
-        title: "Camera Access Denied",
-        description: "Please enable camera permissions to use the scanner.",
-      });
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+            setHasCameraPermission(true);
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                videoRef.current.play();
+                setIsScanning(true);
+            }
+        } catch (err) {
+            console.error("Camera access denied:", err);
+            setHasCameraPermission(false);
+            setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
+            toast({
+                variant: "destructive",
+                title: "Camera Access Denied",
+                description: "Please enable camera permissions to use the scanner.",
+            });
+        }
+    } else {
+        setHasCameraPermission(false);
+        setError("Your browser does not support camera access.");
+        toast({
+            variant: "destructive",
+            title: "Camera Not Supported",
+            description: "Your browser does not support camera access.",
+        });
     }
   };
   
@@ -155,16 +168,15 @@ export default function SmartAttend() {
               title: 'Detection Failed',
               description: 'No barcode was found in the captured image.',
             });
-            setIsLoading(false);
           }
+          setIsLoading(false);
         });
       }
     }
   };
 
-
   React.useEffect(() => {
-    // Cleanup function to stop scanner when component unmounts
+    // Cleanup function to ensure camera is off when the component is unmounted
     return () => {
       stopScanner();
     };
@@ -190,14 +202,7 @@ export default function SmartAttend() {
             </CardHeader>
             <CardContent className="flex flex-col items-center gap-4">
               <div className="relative w-full aspect-video rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                {isScanning && (
-                  <>
-                    <video ref={videoRef} className="w-full h-full object-cover" autoPlay muted playsInline />
-                    <div className="absolute inset-0 z-10 flex items-center justify-center">
-                        <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
-                    </div>
-                  </>
-                )}
+                <video ref={videoRef} className={`w-full h-full object-cover ${isScanning ? '' : 'hidden'}`} autoPlay muted playsInline />
                 {capturedImage && !isScanning && (
                   <Image src={capturedImage} alt="Captured barcode" layout="fill" objectFit="contain" />
                 )}
@@ -206,6 +211,11 @@ export default function SmartAttend() {
                         <Camera className="size-16 mx-auto" />
                         <p>Camera is off</p>
                     </div>
+                )}
+                 {isScanning && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center">
+                      <div className="w-2/3 h-1/2 border-4 border-dashed border-primary rounded-lg" />
+                  </div>
                 )}
               </div>
                 
