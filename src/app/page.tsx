@@ -35,10 +35,12 @@ export default function SmartAttend() {
   const videoRef = React.useRef<HTMLVideoElement>(null);
 
   React.useEffect(() => {
-    if (isScanning) {
-      const getCameraPermission = async () => {
+    let stream: MediaStream | null = null;
+
+    const getCameraPermission = async () => {
+      if (isScanning) {
         try {
-          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
           setHasCameraPermission(true);
           if (videoRef.current) {
             videoRef.current.srcObject = stream;
@@ -53,19 +55,23 @@ export default function SmartAttend() {
             description: 'Please enable camera permissions in your browser settings.',
           });
         }
-      };
-      getCameraPermission();
-    } else {
-      if (videoRef.current && videoRef.current.srcObject) {
-        // @ts-ignore
-        videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+      }
+    };
+
+    getCameraPermission();
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
-    }
+    };
   }, [isScanning, toast]);
 
   const handleScan = async (result: any) => {
-    if (result) {
+    if (result && result.text && result.text !== scannedData) {
       const scannedBarcode = result.text;
       setScannedData(scannedBarcode);
       setIsScanning(false);
