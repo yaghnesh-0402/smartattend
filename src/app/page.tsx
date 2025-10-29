@@ -142,12 +142,12 @@ export default function SmartAttend() {
             },
           },
           decoder: {
-            readers: ["code_128_reader", "ean_reader", "code_39_reader"]
+            readers: ["code_128_reader", "ean_reader", "code_39_reader", "upc_reader", "codabar_reader"]
           },
           locate: true,
           locator: {
             patchSize: 'medium',
-            halfSample: true
+            halfSample: false
           },
           numOfWorkers: navigator.hardwareConcurrency || 4,
         }, (err) => {
@@ -191,7 +191,7 @@ export default function SmartAttend() {
           src: dataUri,
           numOfWorkers: 0,
           decoder: {
-              readers: ["code_128_reader", "code_39_reader", "ean_reader"],
+              readers: ["code_128_reader", "code_39_reader", "ean_reader", "upc_reader", "codabar_reader"],
           },
         }, (result) => {
           setIsLoading(false);
@@ -568,3 +568,5 @@ export default function SmartAttend() {
     </div>
   );
 }
+
+    
