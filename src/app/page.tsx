@@ -113,56 +113,64 @@ export default function SmartAttend() {
     setScannedData(null);
     setCapturedImage(null);
     setHasCameraPermission(null);
-
+  
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        setHasCameraPermission(true);
-        if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            await videoRef.current.play();
-            
-            Quagga.init({
-              inputStream: {
-                name: "Live",
-                type: "LiveStream",
-                target: videoRef.current,
-                constraints: {
-                  width: { min: 640 },
-                  height: { min: 480 },
-                  facingMode: "environment",
-                  aspectRatio: { min: 1, max: 2 }
-                },
-              },
-              decoder: {
-                readers: ["code_128_reader", "ean_reader", "code_39_reader"]
-              },
-              locate: true, 
-              locator: {
-                patchSize: 'medium',
-                halfSample: true
-              },
-              numOfWorkers: navigator.hardwareConcurrency || 4,
-            }, (err) => {
-              if (err) {
-                console.error("Quagga initialization failed:", err);
-                setError("Failed to initialize scanner library.");
-                setHasCameraPermission(false);
-                return;
-              }
-              Quagga.initialized = true;
-              setIsScanning(true);
-              Quagga.start();
-            });
+      const constraints = {
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          advanced: [{ focusMode: 'continuous' }]
         }
-    } catch (err) {
-        console.error("Camera access denied:", err);
-        setHasCameraPermission(false);
-        setError("Camera access is required to scan barcodes. Please enable camera permissions in your browser settings.");
-        toast({
-            variant: "destructive",
-            title: "Camera Access Denied",
-            description: "Please enable camera permissions to use the scanner.",
+      };
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      setHasCameraPermission(true);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+  
+        Quagga.init({
+          inputStream: {
+            name: "Live",
+            type: "LiveStream",
+            target: videoRef.current,
+            constraints: {
+              width: { min: 640, ideal: 1280 },
+              height: { min: 480, ideal: 720 },
+              facingMode: "environment",
+              aspectRatio: { min: 1, max: 2 },
+            },
+          },
+          decoder: {
+            readers: ["code_128_reader", "ean_reader", "code_39_reader"]
+          },
+          locate: true,
+          locator: {
+            patchSize: 'medium',
+            halfSample: true
+          },
+          numOfWorkers: navigator.hardwareConcurrency || 4,
+        }, (err) => {
+          if (err) {
+            console.error("Quagga initialization failed:", err);
+            setError("Failed to initialize scanner library.");
+            setHasCameraPermission(false);
+            return;
+          }
+          Quagga.initialized = true;
+          setIsScanning(true);
+          Quagga.start();
         });
+      }
+    } catch (err) {
+      console.error("Camera access denied or constraints not supported:", err);
+      setHasCameraPermission(false);
+      setError("Camera access is required. Please enable permissions and ensure your device supports the required camera features.");
+      toast({
+        variant: "destructive",
+        title: "Camera Error",
+        description: "Could not access camera. Please check permissions.",
+      });
     }
   };
   
@@ -286,16 +294,16 @@ export default function SmartAttend() {
 
 
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50 dark:bg-gray-900 items-center p-4 md:p-6 lg:p-8">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 items-center p-4 md:p-6 lg:p-8">
        <div className="w-full max-w-lg mx-auto">
         <div className="flex items-center justify-center gap-3 mb-6">
             <Barcode className="size-10 text-primary" />
-            <h1 className="text-4xl font-headline font-bold text-gray-800 dark:text-gray-100">
+            <h1 className="text-4xl font-headline font-bold text-slate-800 dark:text-slate-100">
               Smart Attend
             </h1>
         </div>
 
-        <Card className="shadow-md dark:shadow-2xl">
+        <Card className="shadow-lg dark:shadow-slate-800/50 dark:border-slate-800">
           <CardHeader>
             <CardTitle className="font-headline text-center text-2xl">Attendance Scanner</CardTitle>
             <CardDescription className="text-center">
@@ -303,21 +311,21 @@ export default function SmartAttend() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center gap-4">
-            <div className="relative w-full aspect-video rounded-lg bg-gray-200 dark:bg-gray-800 flex items-center justify-center overflow-hidden border">
+            <div className="relative w-full aspect-video rounded-lg bg-slate-200 dark:bg-slate-900 flex items-center justify-center overflow-hidden border-2 border-slate-300 dark:border-slate-800 shadow-inner">
               <video ref={videoRef} className={`w-full h-full object-cover ${isScanning ? '' : 'hidden'}`} autoPlay muted playsInline />
               {capturedImage && !isScanning && (
                 <Image src={capturedImage} alt="Captured barcode" layout="fill" objectFit="contain" />
               )}
               {!isScanning && !capturedImage && (
                 <div className="text-center text-muted-foreground p-4">
-                  <Camera className="size-16 mx-auto mb-2" />
+                  <Camera className="size-16 mx-auto mb-2 opacity-50" />
                   <p className="font-semibold">Camera is off</p>
                   <p className="text-sm">Ready to scan attendance</p>
                 </div>
               )}
               {isScanning && (
                 <div className="absolute inset-0 z-10 flex items-center justify-center">
-                  <div className="w-2/3 h-1/2 border-4 border-dashed border-primary/70 rounded-lg bg-black/10" />
+                  <div className="w-2/3 h-1/2 border-4 border-dashed border-primary/70 rounded-lg bg-black/20" />
                 </div>
               )}
             </div>
@@ -333,11 +341,11 @@ export default function SmartAttend() {
             )}
 
             {!isScanning ? (
-              <Button onClick={startScanner} size="lg" className="w-full font-semibold">
+              <Button onClick={startScanner} size="lg" className="w-full font-semibold shadow-md hover:shadow-lg transition-shadow">
                 <Camera className="mr-2" /> Start Scanning
               </Button>
             ) : (
-              <Button onClick={captureAndScan} size="lg" className="w-full font-semibold">
+              <Button onClick={captureAndScan} size="lg" className="w-full font-semibold shadow-md hover:shadow-lg transition-shadow">
                 <Barcode className="mr-2" /> Capture & Scan
               </Button>
             )}
@@ -352,7 +360,7 @@ export default function SmartAttend() {
         )}
         
         {scannedData && !isLoading && !student && (
-            <Card className="mt-4 w-full shadow-md">
+            <Card className="mt-4 w-full shadow-md dark:shadow-slate-800/50 dark:border-slate-800">
                 <CardHeader>
                 <CardTitle className="font-headline text-center">Detected Roll Number</CardTitle>
                 </CardHeader>
@@ -371,19 +379,19 @@ export default function SmartAttend() {
         )}
         
         {student && !isLoading && (
-          <Card className="mt-4 w-full shadow-lg dark:shadow-2xl overflow-hidden">
-            <CardHeader className="text-center bg-gray-50 dark:bg-gray-800/50 p-4">
+          <Card className="mt-4 w-full shadow-xl dark:shadow-slate-800/80 dark:border-slate-800 overflow-hidden">
+            <CardHeader className="text-center bg-slate-50 dark:bg-slate-900/50 p-4">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-2" />
               <CardTitle className="font-headline text-2xl">Student Identified</CardTitle>
             </CardHeader>
             <CardContent className="p-4 md:p-6">
               <div className="flex items-center gap-4 mb-6">
-                <Avatar className="h-20 w-20 border-2 border-primary/50">
+                <Avatar className="h-20 w-20 border-2 border-primary/50 shadow-md">
                   <AvatarImage src={student.avatarUrl} alt={student.name} data-ai-hint="student portrait" />
                   <AvatarFallback className="text-2xl">{student.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="space-y-1">
-                  <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{student.name}</p>
+                  <p className="text-xl font-bold text-slate-800 dark:text-slate-100">{student.name}</p>
                   <p className="text-muted-foreground font-code">Roll: {student.rollNo}</p>
                   <p className="text-muted-foreground">{student.branch}</p>
                   <p className="text-muted-foreground text-sm">Year: {student.year}, Section: {student.section}</p>
@@ -399,7 +407,7 @@ export default function SmartAttend() {
 
       {attendingStudents.length > 0 && (
         <div className="mt-8 w-full max-w-6xl">
-            <Card className="mb-6 shadow-md">
+            <Card className="mb-6 shadow-md dark:shadow-slate-800/50 dark:border-slate-800">
                 <CardHeader>
                     <CardTitle>PDF Customization</CardTitle>
                     <CardDescription>Enter the details to be included in the downloaded attendance report.</CardDescription>
@@ -424,9 +432,9 @@ export default function SmartAttend() {
                 </CardContent>
             </Card>
 
-            <Card className="shadow-md">
+            <Card className="shadow-md dark:shadow-slate-800/50 dark:border-slate-800">
             <CardHeader>
-                <div className="flex flex-wrap justify-between items-center gap-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                     <CardTitle className="flex items-center gap-2 text-xl md:text-2xl">
                     <Users />
@@ -435,10 +443,10 @@ export default function SmartAttend() {
                     <CardDescription>Students who have been marked as present.</CardDescription>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                    <Button variant={groupBy === 'branch' ? 'default' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
+                    <Button variant={groupBy === 'branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'branch' ? 'none' : 'branch')}>
                     <Group className="mr-2" /> Group by Branch
                     </Button>
-                    <Button variant={groupBy === 'year-branch' ? 'default' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
+                    <Button variant={groupBy === 'year-branch' ? 'secondary' : 'outline'} size="sm" onClick={() => setGroupBy(groupBy === 'year-branch' ? 'none' : 'year-branch')}>
                     <Group className="mr-2" /> Group by Year & Branch
                     </Button>
                     {groupBy !== 'none' && (
@@ -476,7 +484,7 @@ export default function SmartAttend() {
                 ) : groupBy === 'year-branch' ? (
                 <div className="space-y-6">
                     {(groupedStudents as [string, Map<string, Student[]>][])?.map(([year, branchMap]) => (
-                    <div key={year} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/30">
+                    <div key={year} className="p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900/50">
                         <h3 className="text-xl font-bold mb-4">
                         Year: {year}
                         </h3>
@@ -519,7 +527,7 @@ export default function SmartAttend() {
                 ) : (
                 <div className="space-y-6">
                     {(groupedStudents as [string, Student[]][])?.map(([groupKey, students]) => (
-                    <div key={groupKey} className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-800/30">
+                    <div key={groupKey} className="p-4 border border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50 dark:bg-slate-900/50">
                         <div className="flex justify-between items-center mb-2">
                         <h3 className="text-lg font-semibold capitalize">
                             {groupBy}: {groupKey} <span className="font-normal text-muted-foreground">({students.length} students)</span>
