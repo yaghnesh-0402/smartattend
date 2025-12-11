@@ -1,4 +1,4 @@
-# **App Name**: ScanAttend
+# **App Name**: Smartattend
 
 ## Core Features:
 
@@ -8,7 +8,6 @@
 - Attendance Marking: Mark attendance automatically in the system upon successful barcode scan.
 - Section-Based Segregation: Tool to segregate the attendance based on the sections
 - Attendance Letter Generation: Generate attendance letters in PDF format for respective departments.
-- Automated Delivery: Email attendance PDFs to respective department heads or designated recipients.
 
 ## Style Guidelines:
 
